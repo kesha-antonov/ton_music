@@ -1,5 +1,30 @@
 import { encode } from 'js-base64'
 
 export default {
-  seedServiceBase64: encode(['ton', 'music', 'for', 'contenst', '2022'].join('')),
+  seedService: [
+    'service',
+    'wallet',
+    'hook',
+    'well-made',
+    'true',
+    'admire',
+    'deranged',
+    'thought',
+    'scrawny',
+    'stamp',
+    'frog',
+    'wilderness',
+    'bored',
+    'bridge',
+    'birthday',
+    'geese',
+    'receive',
+    'insidious',
+    'youthful',
+    'tasteful',
+    'smiling',
+    'average',
+    'hallowed',
+    'able',
+  ],
 }
