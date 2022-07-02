@@ -237,18 +237,6 @@ const payments = {
     // In a real application, you will need to check that the smart contract of the channel has changed
     // (for example, by calling its get-method and checking the `state`) and only then do the following action.
 
-    // ----------------------------------------------------------------------
-    // DEPLOY PAYMENT CHANNEL FROM WALLET A
-
-    // Wallet A must have a balance.
-    // 0.05 TON is the amount to execute payments transaction on the blockchain. The unused portion will be returned.
-    // After payments action, a smart contract of our payment channel will be created in the blockchain.
-
-    await payments.fromWalletClient.deploy().send(toNano('0.05'))
-
-    // To check you can use blockchain explorer https://testnet.tonscan.org/address/<CHANNEL_ADDRESS>
-    // We can also call get methods on the channel (it's free) to get its current data.
-
     async function waitToFinishTransaction () {
       Array.from({ length: 10 }, async (x, i) => {
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -261,7 +249,19 @@ const payments = {
       })
     }
 
+    // ----------------------------------------------------------------------
+    // DEPLOY PAYMENT CHANNEL FROM WALLET A
+
+    // Wallet A must have a balance.
+    // 0.05 TON is the amount to execute payments transaction on the blockchain. The unused portion will be returned.
+    // After payments action, a smart contract of our payment channel will be created in the blockchain.
+
+    await payments.fromWalletClient.deploy().send(toNano('0.05'))
     await waitToFinishTransaction()
+
+    // To check you can use blockchain explorer https://testnet.tonscan.org/address/<CHANNEL_ADDRESS>
+    // We can also call get methods on the channel (it's free) to get its current data.
+
 
     // TOP UP
 
@@ -270,7 +270,6 @@ const payments = {
     await payments.fromWalletClient
       .topUp({ coinsA: channelInitState.balanceA, coinsB: new BN(0) })
       .send(channelInitState.balanceA.add(toNano('0.05'))) // +0.05 TON to network fees
-
     await waitToFinishTransaction()
 
     // NO NEED TO TOPUP SERVICE
@@ -288,7 +287,6 @@ const payments = {
     // After everyone has done top-up, we can initialize the channel from any wallet
 
     await payments.fromWalletClient.init(channelInitState).send(toNano('0.05'))
-
     await waitToFinishTransaction()
 
     // to check, call the get method - `state` should change to `TonWeb.payments.PaymentChannel.STATE_OPEN`
