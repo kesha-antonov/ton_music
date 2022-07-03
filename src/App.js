@@ -5,7 +5,7 @@ import { authNapster } from './user-dashboard/requests'
 import AppContext from './app-context'
 import { API_KEY } from './consts'
 import StartPage from './startPage/startpage'
-import ButtonAppBar from './header/Header'
+import HeaderNotAuthorized from './header/Header'
 
 // import { Buffer } from 'buffer'
 //
@@ -93,7 +93,7 @@ function App () {
 
   return (
     <div>
-      <ButtonAppBar setIsLoggedIn={setIsLoggedIn} />
+      <HeaderNotAuthorized setIsLoggedIn={setIsLoggedIn} />
       <StartPage />
     </div>
   )

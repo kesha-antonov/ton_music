@@ -14,8 +14,8 @@ export default function ButtonAppBar(props) {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             TON MUSIC
           </Typography>
-          <Button onClick={() => props.setIsLoggedIn(false)} color="inherit">Sign in</Button>
-          <Button color="inherit">Sing up</Button>
+          <Button onClick={() => props.setIsLoggedIn(true)} color="inherit">Sign in</Button>
+          <Button onClick={() => props.setIsLoggedIn(true)} color="inherit">Sing up</Button>
         </Toolbar>
       </AppBar>
     </Box>
