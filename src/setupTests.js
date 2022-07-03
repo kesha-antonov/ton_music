@@ -6,3 +6,5 @@ import '@testing-library/jest-dom'
 import { LocalStorage } from "node-localstorage"
 
 global.localStorage = new LocalStorage('./scratch')
+
+jest.useRealTimers()

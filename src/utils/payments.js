@@ -5,6 +5,9 @@ import constants from './constants.js'
 import TonWeb from 'tonweb'
 const tonMnemonic = require('tonweb-mnemonic')
 
+console.log('TonWeb.payments.PaymentChannel.STATE_OPEN', TonWeb.payments.PaymentChannel.STATE_OPEN)
+console.log('TonWeb.payments.PaymentChannel', TonWeb.payments.PaymentChannel)
+
 // For calculations in the blockchain, we use BigNumber (BN.js). https://github.com/indutny/bn.js
 // Don't use regular {Number} for coins, etc., it has not enough size and there will be loss of accuracy.
 
@@ -184,14 +187,21 @@ const payments = {
       seqnoA: new BN(0), // initially 0
       seqnoB: new BN(0) // initially 0
     }
+    console.log('channelInitState-1', channelInitState)
+    console.log('channelInitState-2', channelInitState.balanceA.toString())
+    console.log('channelInitState-3', channelInitState.balanceB.toString())
 
     const channelConfig = {
-      channelId: new BN(payments.clientId), // Channel ID, for each new channel there must be a new ID
+      channelId: new BN(12345 + 4), // Channel ID, for each new channel there must be a new ID
       addressA: payments.walletAddressClient, // A's funds will be withdrawn to payments wallet address after the channel is closed
       addressB: payments.walletAddressService, // B's funds will be withdrawn to payments wallet address after the channel is closed
       initBalanceA: channelInitState.balanceA,
       initBalanceB: channelInitState.balanceB
     }
+    console.log('channelConfig-1', channelConfig)
+    console.log('channelConfig-2', channelConfig.initBalanceA.toString())
+    console.log('channelConfig-3', channelConfig.initBalanceB.toString())
+    console.log('channelConfig-4', channelConfig.channelId.toString())
 
     // Each on their side creates a payment channel object with payments configuration
 
@@ -238,15 +248,29 @@ const payments = {
     // (for example, by calling its get-method and checking the `state`) and only then do the following action.
 
     async function waitToFinishTransaction () {
-      Array.from({ length: 10 }, async (x, i) => {
-        await new Promise(resolve => setTimeout(resolve, 1000))
+      // console.log('waitToFinishTransaction-1')
+      // while (await payments.channelClient.getChannelState() === 0) {
+      for (let i = 0; i < 50; i++) {
+        await new Promise(resolve => setTimeout(resolve, 10))
+        // console.log('waitToFinishTransaction-2', new Date)
 
-        console.log(await payments.channelClient.getChannelState())
-        const data = await payments.channelClient.getData()
-        console.log('data = ', data)
-        console.log('balanceA = ', data.balanceA.toString())
-        console.log('balanceB = ', data.balanceB.toString())
-      })
+        console.log('waitToFinishTransaction-1', await payments.channelClient.getData())
+        console.log('waitToFinishTransaction-2', await payments.channelService.getData())
+
+        // let channelClient = payments.tonweb.payments.createChannel({
+        //   ...channelConfig,
+        //   isA: true,
+        //   myKeyPair: payments.keyPairClient,
+        //   hisPublicKey: payments.keyPairService.publicKey
+        // })
+        // console.log('channel-3', await channelClient.getChannelState())
+
+        // console.log('channel-2', await payments.channelService.getChannelState())
+        // const data = await payments.channelClient.getData()
+        // console.log('data = ', data)
+        // console.log('balanceA = ', data.balanceA.toString())
+        // console.log('balanceB = ', data.balanceB.toString())
+      }
     }
 
     // ----------------------------------------------------------------------
@@ -256,7 +280,10 @@ const payments = {
     // 0.05 TON is the amount to execute payments transaction on the blockchain. The unused portion will be returned.
     // After payments action, a smart contract of our payment channel will be created in the blockchain.
 
+    console.log('depositFunds-1')
     await payments.fromWalletClient.deploy().send(toNano('0.05'))
+    console.log('depositFunds-2')
+    await new Promise(resolve => setTimeout(resolve, 10 * 1000))
     await waitToFinishTransaction()
 
     // To check you can use blockchain explorer https://testnet.tonscan.org/address/<CHANNEL_ADDRESS>
@@ -267,16 +294,21 @@ const payments = {
 
     // Now each parties must send their initial balance from the wallet to the channel contract.
 
+    console.log('depositFunds-3')
     await payments.fromWalletClient
-      .topUp({ coinsA: channelInitState.balanceA, coinsB: new BN(0) })
+      .topUp({ coinsA: channelInitState.balanceA, coinsB: toNano('0') })
       .send(channelInitState.balanceA.add(toNano('0.05'))) // +0.05 TON to network fees
-    await waitToFinishTransaction()
+    console.log('depositFunds-4')
+    await new Promise(resolve => setTimeout(resolve, 10 * 1000))
+
+    // await waitToFinishTransaction()
 
     // NO NEED TO TOPUP SERVICE
 
     // await payments.fromWalletService
     //   .topUp({ coinsA: new BN(0), coinsB: channelInitState.balanceB })
     //   .send(channelInitState.balanceB.add(toNano('0.05'))) // +0.05 TON to network fees
+    // await new Promise(resolve => setTimeout(resolve, 10 * 1000))
 
     // await waitToFinishTransaction()
 
@@ -286,9 +318,25 @@ const payments = {
 
     // After everyone has done top-up, we can initialize the channel from any wallet
 
+    console.log('depositFunds-5')
     await payments.fromWalletClient.init(channelInitState).send(toNano('0.05'))
-    await waitToFinishTransaction()
+    // await payments.fromWalletService.init(channelInitState).send(toNano('0.05'))
+    // await waitToFinishTransaction()
 
+    console.log('depositFunds-6')
+    while ((await payments.channelClient.getChannelState() === 0) && (await payments.channelService.getChannelState() === 0)) {
+      await new Promise(resolve => setTimeout(resolve, 10))
+      // console.log('waitToFinishTransaction-2', new Date)
+
+      const data = await payments.channelClient.getData()
+      console.log('channel-1', data)
+      console.log('channel-1', data.balanceA.toString())
+      console.log('channel-1', data.balanceB.toString())
+      console.log('channel-1', data.channelId.toString())
+      // console.log('channel-2', await payments.channelService.getChannelState())
+    }
+
+    return true
     // to check, call the get method - `state` should change to `TonWeb.payments.PaymentChannel.STATE_OPEN`
   },
   // рассчитывает сколько потрачено трафика в тонах: size * tonsPerKb и переводит тоны в смарт-контракте в сторону TM
