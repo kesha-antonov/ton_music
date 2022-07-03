@@ -4,10 +4,13 @@ import React, {useEffect, useLayoutEffect, useState} from "react";
 import {authNapster, authSpotify} from "./user-dashboard/requests";
 import AppContext from './app-context';
 import {API_KEY} from "./consts";
+import StartPage from './startPage/startpage';
+import ButtonAppBar from './header/Header';
 
 const { Napster } = window;
 
 function App() {
+    const [isLogin, setLogin] = useState(true)
     const [contextValue, setContextValue] = useState({token: null})
     const [fetching, setFetching] = useState(false)
 
@@ -34,6 +37,11 @@ function App() {
     }, [])
 
     return (
+        isLogin ? 
+        <div>
+            <ButtonAppBar setLogin={setLogin}/>
+            <StartPage/>
+        </div> :
         <AppContext.Provider value={contextValue}>
             <Dashboard/>
         </AppContext.Provider>
