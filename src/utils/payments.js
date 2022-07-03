@@ -192,7 +192,7 @@ const payments = {
     console.log('channelInitState-3', channelInitState.balanceB.toString())
 
     const channelConfig = {
-      channelId: new BN(12345 + 4), // Channel ID, for each new channel there must be a new ID
+      channelId: new BN(12345 + 9), // Channel ID, for each new channel there must be a new ID
       addressA: payments.walletAddressClient, // A's funds will be withdrawn to payments wallet address after the channel is closed
       addressB: payments.walletAddressService, // B's funds will be withdrawn to payments wallet address after the channel is closed
       initBalanceA: channelInitState.balanceA,
@@ -283,8 +283,20 @@ const payments = {
     console.log('depositFunds-1')
     await payments.fromWalletClient.deploy().send(toNano('0.05'))
     console.log('depositFunds-2')
-    await new Promise(resolve => setTimeout(resolve, 10 * 1000))
-    await waitToFinishTransaction()
+
+    let isChannelDeployed = false
+    while (!isChannelDeployed) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      try {
+        const data = await payments.channelClient.getData()
+        isChannelDeployed = data.channelId?.toString() === channelConfig.channelId.toString()
+      } catch (e) {
+        console.log('check isChannelDeployed e', e)
+      }
+    }
+
+    // await new Promise(resolve => setTimeout(resolve, 10 * 1000))
+    // await waitToFinishTransaction()
 
     // To check you can use blockchain explorer https://testnet.tonscan.org/address/<CHANNEL_ADDRESS>
     // We can also call get methods on the channel (it's free) to get its current data.
@@ -299,7 +311,11 @@ const payments = {
       .topUp({ coinsA: channelInitState.balanceA, coinsB: toNano('0') })
       .send(channelInitState.balanceA.add(toNano('0.05'))) // +0.05 TON to network fees
     console.log('depositFunds-4')
-    await new Promise(resolve => setTimeout(resolve, 10 * 1000))
+
+    while ((await payments.channelClient.getData()).balanceA < channelInitState.balanceA) {
+      console.log('depositFunds-4-1')
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
 
     // await waitToFinishTransaction()
 
@@ -324,7 +340,7 @@ const payments = {
     // await waitToFinishTransaction()
 
     console.log('depositFunds-6')
-    while ((await payments.channelClient.getChannelState() === 0) && (await payments.channelService.getChannelState() === 0)) {
+    while (await payments.channelClient.getChannelState() !== TonWeb.payments.PaymentChannel.STATE_OPEN) {
       await new Promise(resolve => setTimeout(resolve, 10))
       // console.log('waitToFinishTransaction-2', new Date)
 
