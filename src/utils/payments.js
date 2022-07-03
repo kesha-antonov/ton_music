@@ -15,10 +15,15 @@ const BN = TonWeb.utils.BN
 // 1 TON = 10^9 nanoton 1 nanoton = 0.000000001 TON
 // So 0.5 TON is 500000000 nanoton
 
-const toNano = TonWeb.utils.toNano
+const { toNano, fromNano } = TonWeb.utils
+
+const CHANNEL_TEST_INCREMENT = 19
 
 const payments = {
   isInited: false,
+  seqnoClient: new BN(0),
+  isLoaded: false,
+  depositedFunds: 0,
   init: async () => {
     // const mn = await tonMnemonic.generateMnemonic()
     // const res = await tonMnemonic.validateMnemonic([
@@ -174,12 +179,12 @@ const payments = {
     const channelInitState = {
       balanceA: toNano(tonsToDeposit.toString()), // A's initial balance in Toncoins. Next A will need to make a top-up for payments amount
       balanceB: toNano('0'), // B's initial balance in Toncoins. Next B will need to make a top-up for payments amount
-      seqnoA: new BN(0), // initially 0
+      seqnoA: payments.seqnoClient, // initially 0
       seqnoB: new BN(0) // initially 0
     }
 
     const channelConfig = {
-      channelId: new BN(12345 + 9), // Channel ID, for each new channel there must be a new ID
+      channelId: new BN(12345 + CHANNEL_TEST_INCREMENT), // Channel ID, for each new channel there must be a new ID
       addressA: payments.walletAddressClient, // A's funds will be withdrawn to payments wallet address after the channel is closed
       addressB: payments.walletAddressService, // B's funds will be withdrawn to payments wallet address after the channel is closed
       initBalanceA: channelInitState.balanceA,
@@ -279,78 +284,127 @@ const payments = {
 
     while (await payments.channelClient.getChannelState() !== TonWeb.payments.PaymentChannel.STATE_OPEN) { await new Promise(resolve => setTimeout(resolve, 100)) }
 
+    payments.isLoaded = true
+    payments.depositedFunds = fromNano(channelInitState.balanceA).toString()
+
     return true
   },
   // рассчитывает сколько потрачено трафика в тонах: size * tonsPerKb и переводит тоны в смарт-контракте в сторону TM
-  payForListening: async kb => {
+  // или секунд playedSecs * tonsPerSec
+  payForListening: async playedSecs => {
     // ----------------------------------------------------------------------
     // FIRST OFFCHAIN TRANSFER - A sends 0.1 TON to B
 
     // A creates new state - subtracts 0.1 from A's balance, adds 0.1 to B's balance, increases A's seqno by 1
 
-    payments.lastChannelState = {
-      balanceA: toNano('0.9'),
-      balanceB: toNano('2.1'),
-      seqnoA: new BN(1),
-      seqnoB: new BN(0)
+    const tonsPerSec = toNano('0.001')
+
+    async function getBalance () {
+      const data = await payments.channelClient.getData()
+      return {
+        client: data.balanceA,
+        service: data.balanceB
+      }
     }
+
+    if (!payments.lastChannelState) {
+      const balance = await getBalance()
+      payments.lastChannelState = {
+        balanceA: balance.client,
+        balanceB: balance.service,
+        seqnoA: payments.seqnoClient,
+        seqnoB: new BN(0)
+      }
+    }
+
+    const tonsToUse = tonsPerSec.mul(new BN(Number(playedSecs)))
+
+    payments.lastChannelState = {
+      ...payments.lastChannelState,
+      balanceA: payments.lastChannelState.balanceA.sub(tonsToUse),
+      balanceB: payments.lastChannelState.balanceB.add(tonsToUse),
+      seqnoA: payments.seqnoClient.add(new BN(1))
+    }
+
+    //
+    //
+    //
+
+    // for (let i = 0; i < 10; i++) {
+    //   new Promise(resolve => setTimeout(resolve, 1000))
+    //   const balance = await getBalance()
+    // }
 
     // A signs payments state and send signed state to B (e.g. via websocket)
 
-    const signatureA1 = await payments.channelClient.signState(payments.lastChannelState)
+    const signatureClientState = await payments.channelClient.signState(payments.lastChannelState)
+
+    // for (let i = 0; i < 10; i++) {
+    //   new Promise(resolve => setTimeout(resolve, 1000))
+    //   const balance = await getBalance()
+    // }
 
     // B checks that the state is changed according to the rules, signs payments state, send signed state to A (e.g. via websocket)
 
-    if (!(await payments.channelService.verifyState(payments.lastChannelState, signatureA1))) {
+    if (!(await payments.channelService.verifyState(payments.lastChannelState, signatureClientState))) {
       throw new Error('Invalid A signature')
     }
     const signatureB1 = await payments.channelService.signState(payments.lastChannelState)
 
-    // ----------------------------------------------------------------------
-    // SECOND OFFCHAIN TRANSFER - A sends 0.2 TON to B
+    // for (let i = 0; i < 10; i++) {
+    //   new Promise(resolve => setTimeout(resolve, 1000))
+    //   const balance = await getBalance()
+    // }
 
-    // A creates new state - subtracts 0.2 from A's balance, adds 0.2 to B's balance, increases A's seqno by 1
+    // payments.seqnoClient = payments.seqnoClient.add(new BN(1))
 
-    payments.lastChannelState = {
-      balanceA: toNano('0.7'),
-      balanceB: toNano('2.3'),
-      seqnoA: new BN(2),
-      seqnoB: new BN(0)
-    }
+    return true
 
-    // A signs payments state and send signed state to B (e.g. via websocket)
-
-    const signatureA2 = await payments.channelClient.signState(payments.lastChannelState)
-
-    // B checks that the state is changed according to the rules, signs payments state, send signed state to A (e.g. via websocket)
-
-    if (!(await payments.channelService.verifyState(payments.lastChannelState, signatureA2))) {
-      throw new Error('Invalid A signature')
-    }
-    const signatureB2 = await payments.channelService.signState(payments.lastChannelState)
-
-    // ----------------------------------------------------------------------
-    // THIRD OFFCHAIN TRANSFER - B sends 1.1 TON TO A
-
-    // B creates new state - subtracts 1.1 from B's balance, adds 1.1 to A's balance, increases B's seqno by 1
-
-    payments.lastChannelState = {
-      balanceA: toNano('1.8'),
-      balanceB: toNano('1.2'),
-      seqnoA: new BN(2),
-      seqnoB: new BN(1)
-    }
-
-    // B signs payments state and send signed state to A (e.g. via websocket)
-
-    const signatureB3 = await payments.channelService.signState(payments.lastChannelState)
-
-    // A checks that the state is changed according to the rules, signs payments state, send signed state to B (e.g. via websocket)
-
-    if (!(await payments.channelClient.verifyState(payments.lastChannelState, signatureB3))) {
-      throw new Error('Invalid B signature')
-    }
-    const signatureA3 = await payments.channelClient.signState(payments.lastChannelState)
+    // // ----------------------------------------------------------------------
+    // // SECOND OFFCHAIN TRANSFER - A sends 0.2 TON to B
+    //
+    // // A creates new state - subtracts 0.2 from A's balance, adds 0.2 to B's balance, increases A's seqno by 1
+    //
+    // payments.lastChannelState = {
+    //   balanceA: toNano('0.7'),
+    //   balanceB: toNano('2.3'),
+    //   seqnoA: new BN(2),
+    //   seqnoB: new BN(0)
+    // }
+    //
+    // // A signs payments state and send signed state to B (e.g. via websocket)
+    //
+    // const signatureA2 = await payments.channelClient.signState(payments.lastChannelState)
+    //
+    // // B checks that the state is changed according to the rules, signs payments state, send signed state to A (e.g. via websocket)
+    //
+    // if (!(await payments.channelService.verifyState(payments.lastChannelState, signatureA2))) {
+    //   throw new Error('Invalid A signature')
+    // }
+    // const signatureB2 = await payments.channelService.signState(payments.lastChannelState)
+    //
+    // // ----------------------------------------------------------------------
+    // // THIRD OFFCHAIN TRANSFER - B sends 1.1 TON TO A
+    //
+    // // B creates new state - subtracts 1.1 from B's balance, adds 1.1 to A's balance, increases B's seqno by 1
+    //
+    // payments.lastChannelState = {
+    //   balanceA: toNano('1.8'),
+    //   balanceB: toNano('1.2'),
+    //   seqnoA: new BN(2),
+    //   seqnoB: new BN(1)
+    // }
+    //
+    // // B signs payments state and send signed state to A (e.g. via websocket)
+    //
+    // const signatureB3 = await payments.channelService.signState(payments.lastChannelState)
+    //
+    // // A checks that the state is changed according to the rules, signs payments state, send signed state to B (e.g. via websocket)
+    //
+    // if (!(await payments.channelClient.verifyState(payments.lastChannelState, signatureB3))) {
+    //   throw new Error('Invalid B signature')
+    // }
+    // const signatureA3 = await payments.channelClient.signState(payments.lastChannelState)
 
     // ----------------------------------------------------------------------
     // So they can do payments endlessly.
@@ -369,6 +423,13 @@ const payments = {
 
     // First B signs closing message with last state, B sends it to A (e.g. via websocket)
 
+    payments.lastChannelState = {
+      ...payments.lastChannelState,
+      seqnoA: payments.seqnoClient.add(new BN(1)),
+    }
+
+    payments.lastChannelState.seqnoB = payments.lastChannelState.seqnoA
+
     const signatureCloseB = await payments.channelService.signClose(payments.lastChannelState)
 
     // A verifies and signs payments closing message and include B's signature
@@ -384,6 +445,12 @@ const payments = {
       ...payments.lastChannelState,
       hisSignature: signatureCloseB
     }).send(toNano('0.05'))
+
+    while (await payments.channelClient.getChannelState() !== TonWeb.payments.PaymentChannel.STATE_UNINITED) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+
+    return true
   }
 }
 
