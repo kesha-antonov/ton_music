@@ -25,6 +25,6 @@ export default {
     'smiling',
     'average',
     'hallowed',
-    'able',
-  ],
+    'able'
+  ]
 }

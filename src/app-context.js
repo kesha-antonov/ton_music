@@ -1,4 +1,4 @@
-import {createContext} from "react";
+import { createContext } from 'react'
 
-const AppContext = createContext({token: null});
-export default AppContext;
+const AppContext = createContext({ token: null })
+export default AppContext
