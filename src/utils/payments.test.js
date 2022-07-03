@@ -5,7 +5,7 @@ jest.setTimeout(120 * 1000)
 describe('payments util', () => {
     it('should init payments api', async () => {
         await payments.init()
-        expect(payments.isInited).toEqual(true)
+        expect(payments.isLoaded).toEqual(true)
     })
 
     it('should deposit funds', async () => {
