@@ -15,7 +15,7 @@ import payments, { EVENTS as PAYMENTS_EVENTS } from './utils/payments'
 const { Napster } = window
 
 function App () {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('isLoggedIn') === 'true')
   const [token, setToken] = useState()
   const [fetching, setFetching] = useState(false)
 
@@ -23,6 +23,16 @@ function App () {
   const [isFundsDeposited, setIsFundsDeposited] = useState(false)
   const [funds, setFunds] = useState(payments.depositedFunds)
   const [isWithdrawn, setIsWithdrawn] = useState(true)
+
+  const onAuth = useCallback(() => {
+    localStorage.setItem('isLoggedIn', 'true')
+    setIsLoggedIn(true)
+  }, [])
+
+  const onSignOut = useCallback(() => {
+    localStorage.setItem('isLoggedIn', 'false')
+    setIsLoggedIn(false)
+  }, [])
 
   const initNapster = useCallback(async () => {
     Napster.init({ consumerKey: API_KEY, isHTML5Compatible: true })
@@ -83,7 +93,8 @@ function App () {
           isPaymentsApiLoaded,
           isFundsDeposited,
           funds,
-          isWithdrawn
+          isWithdrawn,
+          onSignOut,
         }}
       >
         <Dashboard />
@@ -93,7 +104,7 @@ function App () {
 
   return (
     <div>
-      <HeaderNotAuthorized setIsLoggedIn={setIsLoggedIn} />
+      <HeaderNotAuthorized onAuth={onAuth} />
       <StartPage />
     </div>
   )
