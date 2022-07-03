@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Player from './player'
+import payments from '../utils/payments'
 
 let Napster
 
@@ -31,8 +32,8 @@ export default function PlayerWrapper ({ track }) {
       if (e.data.code === 'Paused') {
         setPlaying(false)
         if (currentTimeRef.current - lastTimeRef.current > 0) {
-          // payForListening(currentTimeRef.current - lastTimeRef.current)
-          console.log('payForListening', currentTimeRef.current - lastTimeRef.current)
+          payments.payForListening(currentTimeRef.current - lastTimeRef.current)
+          console.log('payments.payForListening', currentTimeRef.current - lastTimeRef.current)
           lastTimeRef.current = +currentTimeRef.current
         }
       }
@@ -48,8 +49,8 @@ export default function PlayerWrapper ({ track }) {
       currentTimeRef.current = e.data.currentTime
 
       if (e.data.currentTime - lastTimeRef.current > 5) {
-        // payForListening(currentTimeRef.current - lastTimeRef.current)
-        console.log('payForListening', currentTimeRef.current - lastTimeRef.current)
+        payments.payForListening(currentTimeRef.current - lastTimeRef.current)
+        console.log('payments.payForListening', currentTimeRef.current - lastTimeRef.current)
         lastTimeRef.current = e.data.currentTime
       }
 

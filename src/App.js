@@ -6,11 +6,7 @@ import AppContext from './app-context'
 import { API_KEY } from './consts'
 import StartPage from './startPage/startpage'
 import HeaderNotAuthorized from './header/Header'
-
-// import { Buffer } from 'buffer'
-//
 import payments, { EVENTS as PAYMENTS_EVENTS } from './utils/payments'
-// window.Buffer = Buffer
 
 const { Napster } = window
 
@@ -20,9 +16,9 @@ function App () {
   const [fetching, setFetching] = useState(false)
 
   const [isPaymentsApiLoaded, setIsPaymentsApiLoaded] = useState(false)
-  const [isFundsDeposited, setIsFundsDeposited] = useState(false)
+  const [isFundsDepositing, setIsFundsDepositing] = useState(false)
   const [funds, setFunds] = useState(payments.depositedFunds)
-  const [isWithdrawn, setIsWithdrawn] = useState(true)
+  const [isFundsWithdrawning, setIsFundsWithdrawning] = useState(false)
 
   const onAuth = useCallback(() => {
     localStorage.setItem('isLoggedIn', 'true')
@@ -60,18 +56,19 @@ function App () {
   }, [token, fetching])
 
   const handlePaymentsStateChange = useCallback(eventName => {
+    console.log('handlePaymentsStateChange', eventName)
     switch (eventName) {
       case PAYMENTS_EVENTS.LOADED:
         setIsPaymentsApiLoaded(true)
         break
-      case PAYMENTS_EVENTS.FUNDS_DEPOSITED:
-        setIsFundsDeposited(true)
+      case PAYMENTS_EVENTS.CHANGE_FUNDS_DEPOSITING:
+        setIsFundsDepositing(payments.isDepositing)
         break
       case PAYMENTS_EVENTS.FUNDS_CHANGED:
         setFunds(payments.depositedFunds)
         break
-      case PAYMENTS_EVENTS.WITHDRAW_COMPLETED:
-        setIsWithdrawn(true)
+      case PAYMENTS_EVENTS.CHANGE_FUNDS_WITHDRAWING:
+        setIsFundsWithdrawning(payments.isWithdrawning)
         break
     }
   }, [])
@@ -91,9 +88,9 @@ function App () {
         value={{
           token,
           isPaymentsApiLoaded,
-          isFundsDeposited,
+          isFundsDepositing,
+          isFundsWithdrawning,
           funds,
-          isWithdrawn,
           onSignOut
         }}
       >

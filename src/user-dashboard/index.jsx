@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState, useCallback, useLayoutEffect } from 'react'
 import { styled, createTheme, ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import MuiDrawer from '@mui/material/Drawer'
@@ -13,6 +13,7 @@ import Badge from '@mui/material/Badge'
 import Container from '@mui/material/Container'
 import Grid from '@mui/material/Grid'
 import Link from '@mui/material/Link'
+import CircularProgress from '@mui/material/CircularProgress'
 import MenuIcon from '@mui/icons-material/Menu'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import NotificationsIcon from '@mui/icons-material/Notifications'
@@ -24,6 +25,7 @@ import AppContext from '../app-context'
 import PlayerWrapper from './player-wrapper'
 import SettingsIcon from '@mui/icons-material/Settings'
 import qr from '../assets/img/qr.png'
+import payments from '../utils/payments'
 
 function Copyright (props) {
   return (
@@ -285,94 +287,121 @@ export default function Dashboard () {
 }
 
 const Settings = (props) => {
-  const { onSignOut } = useContext(AppContext)
+  const { isPaymentsApiLoaded, funds, isFundsDepositing, isFundsWithdrawning, onSignOut } = useContext(AppContext)
+  console.log('isPaymentsApiLoaded', isPaymentsApiLoaded)
+
+  const [tonsToFund, setTonsToFund] = useState('')
+
+  const initPayments = useCallback(async () => {
+    await payments.init()
+  }, [])
+
+  const topUp = useCallback(async () => {
+    await payments.depositFunds(tonsToFund)
+    setTonsToFund('')
+  }, [tonsToFund])
+
+  useLayoutEffect(() => {
+    initPayments()
+  }, [])
 
   return (
     <Grid item>
-      <Grid
-        container
-        direction='row'
-        justifyContent='flex-start'
-        alignItems='center'
-      >
-        <Grid>
-          <Typography style={style.head}>Settings</Typography>
-          <Typography style={style.head2}>TOP-UP</Typography>
-          <Grid
-            container
-            direction='row'
-            justifyContent='flex-start'
-            alignItems='center'
-            sx={{ pt: 2 }}
-          >
-            <Typography style={style.balance}>Balance:  {5.99 + ' TON'}</Typography>
-          </Grid>
-          <Grid
-            container
-            direction='row'
-            justifyContent='flex-start'
-            alignItems='center'
-            sx={{ pt: 2 }}
-          >
-            <TextField
-              id='outlined-basic' label='How many' variant='outlined'
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position='end'>
-                    <Typography>TON</Typography>
-                  </InputAdornment>
-                )
-              }}
-            />
-          </Grid>
-          <Grid
-            container
-            direction='row'
-            justifyContent='flex-start'
-            alignItems='center'
-            sx={{ pt: 2 }}
-          >
-            <Switch defaultChecked /><Typography>auto-topup then fise all funds</Typography>
-          </Grid>
-          <Button sx={{ my: 2 }} variant='contained'>Pay</Button>
-          <Grid
-            container
-            direction='row'
-            justifyContent='flex-start'
-            alignItems='center'
-          >
-            <Box
-              component='img'
-              sx={{
-                height: 500,
-                width: 200,
-                maxHeight: { xs: 150, md: 150 },
-                maxWidth: { xs: 150, md: 150 }
-              }}
-              alt='The house from the offer.'
-              src={qr}
-            />
-            <Typography>Scan QR to pay amount 10 TON</Typography>
-          </Grid>
-          <Typography>*10 TON will be good for 1 month</Typography>
-          <Typography style={style.head2}>Audio</Typography>
-          <Grid
-            container
-            direction='row'
-            justifyContent='flex-start'
-            alignItems='center'
-          >
-            <Switch defaultChecked /><Typography>Hight Quality Audio (uses 2x TON)</Typography>
-          </Grid>
-          <Typography style={style.head2}>History of listening</Typography>
-          <Typography>1. Kendrick Lamar - All The Stars (with SZA) 3:52</Typography>
-          <Typography>2. XXXTENTACION - bad vibes forever          2:30</Typography>
-          <Typography>3. The Silhouettes Project - Free Your Mind  4:11</Typography>
-          <Button onClick={() => props.setOpenSettings(false)} sx={{ my: 2 }} variant='contained'>Save</Button>
-          <Button onClick={() => props.setOpenSettings(false)} sx={{ my: 2 }} variant='contained'>Cancel</Button>
-        </Grid>
-      </Grid>
-      <Grid>
+      {
+        isPaymentsApiLoaded ?
+          (
+            <Grid
+              container
+              direction='row'
+              justifyContent='flex-start'
+              alignItems='center'
+            >
+              <Grid>
+                <Typography style={style.head}>Settings</Typography>
+                <Typography style={style.head2}>TOP-UP</Typography>
+                <Grid
+                  container
+                  direction='row'
+                  justifyContent='flex-start'
+                  alignItems='center'
+                  sx={{ pt: 2 }}
+                >
+                  <Typography style={style.balance}>Balance:  {funds + ' TON'}</Typography>
+                </Grid>
+                <Grid
+                  container
+                  direction='row'
+                  justifyContent='flex-start'
+                  alignItems='center'
+                  sx={{ pt: 2 }}
+                >
+                  <TextField
+                    id='outlined-basic' label='How many' variant='outlined'
+                    onChange={e => setTonsToFund(e.target.value)}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position='end'>
+                          <Typography>TON</Typography>
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                </Grid>
+                <Grid
+                  container
+                  direction='row'
+                  justifyContent='flex-start'
+                  alignItems='center'
+                  sx={{ pt: 2 }}
+                >
+                  <Switch defaultChecked /><Typography>Auto top up same amount when use all the funds</Typography>
+                </Grid>
+                <Button sx={{ my: 2 }} variant='contained' disabled={!tonsToFund.length} onClick={topUp}>{isFundsDepositing ? 'Loading...' : 'Top up TONs'}</Button>
+                {
+                  Number(funds) > 0 && (
+                    <Button sx={{ my: 2 }} variant='contained' onClick={() => payments.withdrawFunds()} style={{marginLeft: 30}}>{isFundsWithdrawning ? 'Loading...' : 'Withdrawn remaining TONs'}</Button>
+                  )
+                }
+                <Grid
+                  container
+                  direction='row'
+                  justifyContent='flex-start'
+                  alignItems='center'
+                >
+                  <Box
+                    component='img'
+                    sx={{
+                      height: 500,
+                      width: 200,
+                      maxHeight: { xs: 150, md: 150 },
+                      maxWidth: { xs: 150, md: 150 }
+                    }}
+                    alt='The house from the offer.'
+                    src={qr}
+                  />
+                  <Typography>Scan QR to pay amount 10 TON</Typography>
+                </Grid>
+                <Typography>*10 TON will be good for 1 month</Typography>
+                <Typography style={style.head2}>Audio</Typography>
+                <Grid
+                  container
+                  direction='row'
+                  justifyContent='flex-start'
+                  alignItems='center'
+                >
+                  <Switch defaultChecked /><Typography>Hight Quality Audio (uses 2x TON)</Typography>
+                </Grid>
+                <Typography style={style.head2}>History of listening</Typography>
+                <Typography>1. Kendrick Lamar - All The Stars (with SZA) 3:52</Typography>
+                <Typography>2. XXXTENTACION - bad vibes forever          2:30</Typography>
+                <Typography>3. The Silhouettes Project - Free Your Mind  4:11</Typography>
+              </Grid>
+            </Grid>
+          ) : (
+            <CircularProgress />
+          )
+      }
+      <Grid style={{marginTop: 50}}>
         <Button onClick={() => onSignOut()} sx={{ my: 2 }} variant='contained'>Log Out</Button>
       </Grid>
     </Grid>

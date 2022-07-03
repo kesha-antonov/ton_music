@@ -21,9 +21,9 @@ const { toNano, fromNano } = TonWeb.utils
 const CHANNEL_TEST_INCREMENT = (new Date()).getTime()
 export const EVENTS = {
   LOADED: 'LOADED',
-  FUNDS_DEPOSITED: 'FUNDS_DEPOSITED',
+  CHANGE_FUNDS_DEPOSITING: 'CHANGE_FUNDS_DEPOSITING',
   FUNDS_CHANGED: 'FUNDS_CHANGED',
-  WITHDRAW_COMPLETED: 'WITHDRAW_COMPLETED'
+  CHANGE_FUNDS_WITHDRAWING: 'CHANGE_FUNDS_WITHDRAWING'
 }
 
 const payments = {
@@ -31,6 +31,8 @@ const payments = {
   seqnoClient: new BN(0),
   isLoaded: false,
   depositedFunds: '0', // SHOULD CHANGE UI BASED ON THIS VALUE
+  isDepositing: false,
+  isWithdrawning: false,
   init: async () => {
     // const mn = await tonMnemonic.generateMnemonic()
     // const res = await tonMnemonic.validateMnemonic([
@@ -118,7 +120,7 @@ const payments = {
 
       payments.clientId = localStorage.getItem('clientId')
       if (!payments.clientId) {
-        payments.clientId = '12345'
+        payments.clientId = '12345' + 1
         // TODO: USE LATER - FOR NOW LEAVE 2 SPECIFIC WALLETS.
         // payments.clientId = (new Date()).getTime().toString()
         localStorage.setItem('clientId', payments.clientId)
@@ -187,135 +189,154 @@ const payments = {
   },
   // на вход принимает сколько хочешь внести тонов
   depositFunds: async tonsToDeposit => {
-    if (!payments.isInitializing) {
+    if (!payments.isLoaded) {
       console.warn('PAYMENTS ERROR: NOT INITED')
       return
     }
 
-    // ----------------------------------------------------------------------
-    // PREPARE PAYMENT CHANNEL
-
-    // The parties agree on the configuration of the payment channel.
-    // They share information about the payment channel ID, their public keys, their wallet addresses for withdrawing coins, initial balances.
-    // They share payments information off-chain, for example via a websocket.
-
-    const channelInitState = {
-      balanceA: toNano(tonsToDeposit.toString()), // A's initial balance in Toncoins. Next A will need to make a top-up for payments amount
-      balanceB: toNano('0'), // B's initial balance in Toncoins. Next B will need to make a top-up for payments amount
-      seqnoA: payments.seqnoClient, // initially 0
-      seqnoB: new BN(0) // initially 0
+    if (payments.isDepositing) {
+      console.warn('PAYMENTS ERROR: DEPOSITING IN PROCESS')
+      return
     }
 
-    const channelConfig = {
-      channelId: new BN(12345 + CHANNEL_TEST_INCREMENT), // Channel ID, for each new channel there must be a new ID
-      addressA: payments.walletAddressClient, // A's funds will be withdrawn to payments wallet address after the channel is closed
-      addressB: payments.walletAddressService, // B's funds will be withdrawn to payments wallet address after the channel is closed
-      initBalanceA: channelInitState.balanceA,
-      initBalanceB: channelInitState.balanceB
-    }
+    let isDeposited = false
 
-    // Each on their side creates a payment channel object with payments configuration
+    try {
+      payments.isDepositing = true
+      payments.callEventListeners(EVENTS.CHANGE_FUNDS_DEPOSITING)
 
-    payments.channelClient = payments.tonweb.payments.createChannel({
-      ...channelConfig,
-      isA: true,
-      myKeyPair: payments.keyPairClient,
-      hisPublicKey: payments.keyPairService.publicKey
-    })
-    const channelAddress = await payments.channelClient.getAddress() // address of payments payment channel smart-contract in blockchain
+      // ----------------------------------------------------------------------
+      // PREPARE PAYMENT CHANNEL
 
-    payments.channelService = payments.tonweb.payments.createChannel({
-      ...channelConfig,
-      isA: false,
-      myKeyPair: payments.keyPairService,
-      hisPublicKey: payments.keyPairClient.publicKey
-    })
+      // The parties agree on the configuration of the payment channel.
+      // They share information about the payment channel ID, their public keys, their wallet addresses for withdrawing coins, initial balances.
+      // They share payments information off-chain, for example via a websocket.
 
-    if ((await payments.channelService.getAddress()).toString() !== channelAddress.toString()) {
-      throw new Error('Channels address not same')
-    }
-
-    // Interaction with the smart contract of the payment channel is carried out by sending messages from the wallet to it.
-    // So let's create helpers for such sends.
-
-    payments.fromWalletClient = payments.channelClient.fromWallet({
-      wallet: payments.walletClient,
-      secretKey: payments.keyPairClient.secretKey
-    })
-
-    payments.fromWalletService = payments.channelService.fromWallet({
-      wallet: payments.walletSerice,
-      secretKey: payments.keyPairService.secretKey
-    })
-
-    // ----------------------------------------------------------------------
-    // NOTE:
-    // Further we will interact with the blockchain.
-    // After each interaction with the blockchain, we need to wait for execution. In the TON blockchain, payments is usually about 5 seconds.
-    // In payments example, the interaction code happens right after each other - that won't work.
-    // To study the example, you can put a `return` after each send.
-    // In a real application, you will need to check that the smart contract of the channel has changed
-    // (for example, by calling its get-method and checking the `state`) and only then do the following action.
-
-    // ----------------------------------------------------------------------
-    // DEPLOY PAYMENT CHANNEL FROM WALLET A
-
-    // Wallet A must have a balance.
-    // 0.05 TON is the amount to execute payments transaction on the blockchain. The unused portion will be returned.
-    // After payments action, a smart contract of our payment channel will be created in the blockchain.
-
-    await payments.fromWalletClient.deploy().send(toNano('0.05'))
-
-    let isChannelDeployed = false
-    while (!isChannelDeployed) {
-      await new Promise(resolve => setTimeout(resolve, 100))
-      try {
-        const data = await payments.channelClient.getData()
-        isChannelDeployed = data.channelId?.toString() === channelConfig.channelId.toString()
-      } catch (e) {
-        console.warn('channel deploying... e', e)
+      const channelInitState = {
+        balanceA: toNano(tonsToDeposit.toString()), // A's initial balance in Toncoins. Next A will need to make a top-up for payments amount
+        balanceB: toNano('0'), // B's initial balance in Toncoins. Next B will need to make a top-up for payments amount
+        seqnoA: payments.seqnoClient, // initially 0
+        seqnoB: new BN(0) // initially 0
       }
+
+      const channelConfig = {
+        channelId: new BN(12345 + CHANNEL_TEST_INCREMENT), // Channel ID, for each new channel there must be a new ID
+        addressA: payments.walletAddressClient, // A's funds will be withdrawn to payments wallet address after the channel is closed
+        addressB: payments.walletAddressService, // B's funds will be withdrawn to payments wallet address after the channel is closed
+        initBalanceA: channelInitState.balanceA,
+        initBalanceB: channelInitState.balanceB
+      }
+
+      // Each on their side creates a payment channel object with payments configuration
+
+      payments.channelClient = payments.tonweb.payments.createChannel({
+        ...channelConfig,
+        isA: true,
+        myKeyPair: payments.keyPairClient,
+        hisPublicKey: payments.keyPairService.publicKey
+      })
+      const channelAddress = await payments.channelClient.getAddress() // address of payments payment channel smart-contract in blockchain
+
+      payments.channelService = payments.tonweb.payments.createChannel({
+        ...channelConfig,
+        isA: false,
+        myKeyPair: payments.keyPairService,
+        hisPublicKey: payments.keyPairClient.publicKey
+      })
+
+      if ((await payments.channelService.getAddress()).toString() !== channelAddress.toString()) {
+        throw new Error('Channels address not same')
+      }
+
+      // Interaction with the smart contract of the payment channel is carried out by sending messages from the wallet to it.
+      // So let's create helpers for such sends.
+
+      payments.fromWalletClient = payments.channelClient.fromWallet({
+        wallet: payments.walletClient,
+        secretKey: payments.keyPairClient.secretKey
+      })
+
+      payments.fromWalletService = payments.channelService.fromWallet({
+        wallet: payments.walletSerice,
+        secretKey: payments.keyPairService.secretKey
+      })
+
+      // ----------------------------------------------------------------------
+      // NOTE:
+      // Further we will interact with the blockchain.
+      // After each interaction with the blockchain, we need to wait for execution. In the TON blockchain, payments is usually about 5 seconds.
+      // In payments example, the interaction code happens right after each other - that won't work.
+      // To study the example, you can put a `return` after each send.
+      // In a real application, you will need to check that the smart contract of the channel has changed
+      // (for example, by calling its get-method and checking the `state`) and only then do the following action.
+
+      // ----------------------------------------------------------------------
+      // DEPLOY PAYMENT CHANNEL FROM WALLET A
+
+      // Wallet A must have a balance.
+      // 0.05 TON is the amount to execute payments transaction on the blockchain. The unused portion will be returned.
+      // After payments action, a smart contract of our payment channel will be created in the blockchain.
+
+      await payments.fromWalletClient.deploy().send(toNano('0.05'))
+
+      let isChannelDeployed = false
+      while (!isChannelDeployed) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        try {
+          const data = await payments.channelClient.getData()
+          isChannelDeployed = data.channelId?.toString() === channelConfig.channelId.toString()
+        } catch (e) {
+          console.warn('channel deploying... e', e)
+        }
+      }
+
+      // To check you can use blockchain explorer https://testnet.tonscan.org/address/<CHANNEL_ADDRESS>
+      // We can also call get methods on the channel (it's free) to get its current data.
+
+      // TOP UP
+
+      // Now each parties must send their initial balance from the wallet to the channel contract.
+
+      await payments.fromWalletClient
+        .topUp({ coinsA: channelInitState.balanceA, coinsB: toNano('0') })
+        .send(channelInitState.balanceA.add(toNano('0.05'))) // +0.05 TON to network fees
+
+      while ((await payments.channelClient.getData()).balanceA < channelInitState.balanceA) { await new Promise(resolve => setTimeout(resolve, 100)) }
+
+      // NO NEED TO TOPUP SERVICE
+
+      // await payments.fromWalletService
+      //   .topUp({ coinsA: new BN(0), coinsB: channelInitState.balanceB })
+      //   .send(channelInitState.balanceB.add(toNano('0.05'))) // +0.05 TON to network fees
+      // await new Promise(resolve => setTimeout(resolve, 10 * 1000))
+
+      // to check, call the get method - the balances should change
+
+      // INIT
+
+      // After everyone has done top-up, we can initialize the channel from any wallet
+
+      await payments.fromWalletClient.init(channelInitState).send(toNano('0.05'))
+
+      while (await payments.channelClient.getChannelState() !== TonWeb.payments.PaymentChannel.STATE_OPEN) { await new Promise(resolve => setTimeout(resolve, 100)) }
+
+      payments.depositedFunds = fromNano(channelInitState.balanceA).toString()
+      payments.callEventListeners(EVENTS.FUNDS_CHANGED)
+
+      isDeposited = true
+    } catch (e) {
+
+    } finally {
+      payments.isDepositing = false
+      payments.callEventListeners(EVENTS.CHANGE_FUNDS_DEPOSITING)
     }
 
-    // To check you can use blockchain explorer https://testnet.tonscan.org/address/<CHANNEL_ADDRESS>
-    // We can also call get methods on the channel (it's free) to get its current data.
-
-    // TOP UP
-
-    // Now each parties must send their initial balance from the wallet to the channel contract.
-
-    await payments.fromWalletClient
-      .topUp({ coinsA: channelInitState.balanceA, coinsB: toNano('0') })
-      .send(channelInitState.balanceA.add(toNano('0.05'))) // +0.05 TON to network fees
-
-    while ((await payments.channelClient.getData()).balanceA < channelInitState.balanceA) { await new Promise(resolve => setTimeout(resolve, 100)) }
-
-    // NO NEED TO TOPUP SERVICE
-
-    // await payments.fromWalletService
-    //   .topUp({ coinsA: new BN(0), coinsB: channelInitState.balanceB })
-    //   .send(channelInitState.balanceB.add(toNano('0.05'))) // +0.05 TON to network fees
-    // await new Promise(resolve => setTimeout(resolve, 10 * 1000))
-
-    // to check, call the get method - the balances should change
-
-    // INIT
-
-    // After everyone has done top-up, we can initialize the channel from any wallet
-
-    await payments.fromWalletClient.init(channelInitState).send(toNano('0.05'))
-
-    while (await payments.channelClient.getChannelState() !== TonWeb.payments.PaymentChannel.STATE_OPEN) { await new Promise(resolve => setTimeout(resolve, 100)) }
-
-    payments.depositedFunds = fromNano(channelInitState.balanceA).toString()
-    payments.callEventListeners(EVENTS.FUNDS_DEPOSITED)
-
-    return true
+    return isDeposited
   },
   // рассчитывает сколько потрачено трафика в тонах: size * tonsPerKb и переводит тоны в смарт-контракте в сторону TM
   // или секунд playedSecs * tonsPerSec
   payForListening: async playedSecs => {
-    if (!payments.isInitializing) {
+    if (!payments.isLoaded) {
       console.warn('PAYMENTS ERROR: NOT INITED')
       return
     }
@@ -448,50 +469,63 @@ const payments = {
   },
   // возвращает оставшиеся монеты на кошелек
   withdrawFunds: async () => {
-    // ----------------------------------------------------------------------
-    // CLOSE PAYMENT CHANNEL
+    let isWithdrawn = false
+    try {
+      payments.isWithdrawning = true
+      payments.callEventListeners(EVENTS.CHANGE_FUNDS_WITHDRAWING)
 
-    // The parties decide to end the transfer session.
-    // If one of the parties disagrees or is not available, then the payment channel can be emergency terminated using the last signed state.
-    // That is why the parties send signed states to each other off-chain.
-    // But in our case, they do it by mutual agreement.
+      // ----------------------------------------------------------------------
+      // CLOSE PAYMENT CHANNEL
 
-    // First B signs closing message with last state, B sends it to A (e.g. via websocket)
+      // The parties decide to end the transfer session.
+      // If one of the parties disagrees or is not available, then the payment channel can be emergency terminated using the last signed state.
+      // That is why the parties send signed states to each other off-chain.
+      // But in our case, they do it by mutual agreement.
 
-    payments.lastChannelState = {
-      ...payments.lastChannelState,
-      seqnoA: payments.seqnoClient.add(new BN(1))
+      // First B signs closing message with last state, B sends it to A (e.g. via websocket)
+
+      payments.lastChannelState = {
+        ...payments.lastChannelState,
+        seqnoA: payments.seqnoClient.add(new BN(1))
+      }
+
+      payments.lastChannelState.seqnoB = payments.lastChannelState.seqnoA
+
+      const signatureCloseB = await payments.channelService.signClose(payments.lastChannelState)
+
+      // A verifies and signs payments closing message and include B's signature
+
+      // A sends closing message to blockchain, payments channel smart contract
+      // Payment channel smart contract will send funds to participants according to the balances of the sent state.
+
+      if (!(await payments.channelClient.verifyClose(payments.lastChannelState, signatureCloseB))) {
+        throw new Error('Invalid B signature')
+      }
+
+      await payments.fromWalletClient.close({
+        ...payments.lastChannelState,
+        hisSignature: signatureCloseB
+      }).send(toNano('0.05'))
+
+      while (await payments.channelClient.getChannelState() !== TonWeb.payments.PaymentChannel.STATE_UNINITED) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+
+      payments.callEventListeners(EVENTS.CHANGE_FUNDS_WITHDRAWING)
+
+      const channelClientData = await payments.channelClient.getData()
+      payments.depositedFunds = fromNano(channelClientData.balanceA).toString()
+      payments.callEventListeners(EVENTS.FUNDS_CHANGED)
+
+      isWithdrawn = true
+    } catch (e) {
+      console.warn('withdrawFunds e', e)
+    } finally {
+      payments.isWithdrawning = false
+      payments.callEventListeners(EVENTS.CHANGE_FUNDS_WITHDRAWING)
     }
 
-    payments.lastChannelState.seqnoB = payments.lastChannelState.seqnoA
-
-    const signatureCloseB = await payments.channelService.signClose(payments.lastChannelState)
-
-    // A verifies and signs payments closing message and include B's signature
-
-    // A sends closing message to blockchain, payments channel smart contract
-    // Payment channel smart contract will send funds to participants according to the balances of the sent state.
-
-    if (!(await payments.channelClient.verifyClose(payments.lastChannelState, signatureCloseB))) {
-      throw new Error('Invalid B signature')
-    }
-
-    await payments.fromWalletClient.close({
-      ...payments.lastChannelState,
-      hisSignature: signatureCloseB
-    }).send(toNano('0.05'))
-
-    while (await payments.channelClient.getChannelState() !== TonWeb.payments.PaymentChannel.STATE_UNINITED) {
-      await new Promise(resolve => setTimeout(resolve, 100))
-    }
-
-    payments.callEventListeners(EVENTS.WITHDRAW_COMPLETED)
-
-    const channelClientData = await payments.channelClient.getData()
-    payments.depositedFunds = fromNano(channelClientData.balanceA).toString()
-    payments.callEventListeners(EVENTS.FUNDS_CHANGED)
-
-    return true
+    return isWithdrawn
   },
   eventListeners: {},
   addEventListener: callback => {
