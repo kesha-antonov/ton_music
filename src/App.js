@@ -17,13 +17,15 @@ function App () {
   const [funds, setFunds] = useState(payments.depositedFunds)
   const [isWithdrawn, setIsWithdrawn] = useState(true)
 
-  const initNapster = useCallback(() => {
+  const initNapster = useCallback(async () => {
     Napster.init({ consumerKey: API_KEY, isHTML5Compatible: true })
 
     if (token || fetching) return
 
-    setFetching(true)
-    authNapster().then((result) => {
+    try {
+      setFetching(true)
+
+      const result = await authNapster()
       console.log(result)
 
       Napster.player.on('ready', () => {
@@ -35,8 +37,10 @@ function App () {
 
       setToken({ token: result.access_token })
       setFetching(false)
-    })
-      .catch(() => setFetching(false))
+    } catch (e) {
+      setFetching(false)
+      console.warn('initNapster e', e)
+    }
   }, [token, fetching])
 
   const handlePaymentsStateChange = useCallback(eventName => {
