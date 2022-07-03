@@ -1,8 +1,20 @@
 import React from 'react'
 import ProgressBar from './progress-bar'
 import 'font-awesome/css/font-awesome.min.css'
+import styled from "@emotion/styled";
 
 let Napster
+
+const StyledButton = styled.button`
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border: #1976d2 solid 1px;
+  border-radius: 4px;
+  background-color: rgba(25, 118, 210, 0.2);
+  color: #023bf5;
+  margin-right: 8px;
+`
 
 export default class Player extends React.Component {
   constructor (props) {
@@ -133,45 +145,45 @@ export default class Player extends React.Component {
           playing={this.props.playing}
         />
         <br />
-        <button
+        <StyledButton
           type='button' className={this.props.repeat ? 'player-toggle' : 'player-btn'} title='Repeat'
           onClick={() => this.repeat()}
         ><i className='fa fa-repeat' />
-        </button>
+        </StyledButton>
         {this.props.showQueue &&
-          <button
+          <StyledButton
             type='button' className={this.props.isShowing ? 'player-toggle' : 'player-btn'}
             title='Show Queue' onClick={() => {
               this.props.showQueue()
             }}
           ><i className='fa fa-reorder' />
-          </button>}
-        <button
+          </StyledButton>}
+        <StyledButton
           type='button' title='Previous Song' className='player-btn' onClick={() => {
             this.nextPrev('prev', this.props.selectedTrack)
           }}
         ><i className='fa fa-step-backward' />
-        </button>
-        <button
+        </StyledButton>
+        <StyledButton
           type='button' title={this.props.playing ? 'Pause' : 'Play'} className='player-btn'
           onClick={() => {
             this.playPauseResume(this.props.selectedTrack)
           }}
         ><i className={this.props.playing ? 'fa fa-pause' : 'fa fa-play'} />
-        </button>
-        <button
+        </StyledButton>
+        <StyledButton
           type='button' title='Next Song' className='player-btn' onClick={() => {
             this.nextPrev('next', this.props.selectedTrack)
           }}
         ><i className='fa fa-step-forward' />
-        </button>
-        <button
+        </StyledButton>
+        <StyledButton
           type='button' className={!this.props.shuffle ? 'player-btn' : 'player-toggle'} title='Shuffle'
           onClick={() => {
             this.shuffle(this.props.queue)
           }}
         ><i className='fa fa-random' />
-        </button>
+        </StyledButton>
       </div>
     )
   }

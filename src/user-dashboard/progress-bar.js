@@ -1,4 +1,12 @@
 import React from 'react'
+import styled from "@emotion/styled";
+
+const StyledTextWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 225px
+`
 
 let Napster
 
@@ -54,10 +62,10 @@ export default class ProgressBar extends React.Component {
 
   render () {
     return (
-      <div className='text'>
+      <StyledTextWrapper className='text'>
         <input type='range' id='progress' min={0} max={this.props.totalTime} step='any' onChange={this.seek} value={this.props.currentTime} />
         {` ${this.normalizeTime(this.props.currentTime)}/${this.calculateTotalValue(this.props.selectedTrack)}`}
-      </div>
+      </StyledTextWrapper>
     )
   }
 }
