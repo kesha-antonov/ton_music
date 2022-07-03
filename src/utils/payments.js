@@ -169,6 +169,11 @@ const payments = {
   },
   // на вход принимает сколько хочешь внести тонов
   depositFunds: async tonsToDeposit => {
+    if (!payments.isInited) {
+      console.warn('PAYMENTS ERROR: NOT INITED')
+      return
+    }
+    
     // ----------------------------------------------------------------------
     // PREPARE PAYMENT CHANNEL
 
