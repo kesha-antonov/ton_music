@@ -21,10 +21,7 @@ import {getTag, getTopChartTracks} from "./requests";
 import {parseTracks} from "./tools";
 import {Card, CardActionArea, CardContent, CardMedia} from "@mui/material";
 import AppContext from "../app-context";
-import Player from "./player";
-// import Chart from './Chart';
-// import Deposits from './Deposits';
-// import Tracks from './tracks';
+import PlayerWrapper from "./player-wrapper";
 
 function Copyright(props) {
     return (
@@ -101,6 +98,8 @@ function DashboardContent({list, fetching, onGetTag, onSelectTrack}) {
     const [open, setOpen] = React.useState(true);
     const [tagSelected, setTagSelected] = React.useState('');
     const [mainSelected, setMainSelected] = React.useState('home');
+    const [selectedTrack, setSelectedTrack] = React.useState(null);
+
     const toggleDrawer = () => {
         setOpen(!open);
     };
@@ -108,18 +107,20 @@ function DashboardContent({list, fetching, onGetTag, onSelectTrack}) {
     const handleTagOnClick = (value) => {
         setMainSelected('');
         setTagSelected(value);
+        setSelectedTrack(null);
         onGetTag(value);
     };
 
     const handleMainOnClick = (value) => {
         setMainSelected(value);
         setTagSelected('');
+        setSelectedTrack(null);
     }
 
     const cards = useMemo(() => {
         return list.map((item, index) => {
             return <Grid item key={index}>
-                <Card variant="outlined" sx={{width: 235}} onClick={() => onSelectTrack(item)}>
+                <Card variant="outlined" sx={{width: 235}} onClick={() => setSelectedTrack(item)}>
                     <CardActionArea>
                         <CardMedia
                             component="img"
@@ -170,7 +171,7 @@ function DashboardContent({list, fetching, onGetTag, onSelectTrack}) {
                             noWrap
                             sx={{flexGrow: 1}}
                         >
-                            Dashboard
+                            TON Music
                         </Typography>
                         <IconButton color="inherit">
                             <Badge badgeContent={4} color="secondary">
@@ -212,25 +213,27 @@ function DashboardContent({list, fetching, onGetTag, onSelectTrack}) {
                     }}
                 >
                     <Toolbar/>
-                    <Container maxWidth="lg" sx={{mt: 4, mb: 4}}>
-                        {fetching && <Loading/>}
-                        <Grid container spacing={{xs: 2, md: 4}} columns={{xs: 8, sm: 12, md: 16}}>
-                            {cards}
-                        </Grid>
-                        <Copyright sx={{pt: 4}}/>
-                    </Container>
+                    {selectedTrack ?
+                        <PlayerWrapper track={selectedTrack}/> :
+                        <Container maxWidth="lg" sx={{mt: 4, mb: 4}}>
+                            {fetching && <Loading/>}
+                            <Grid container spacing={{xs: 2, md: 4}} columns={{xs: 8, sm: 12, md: 16}}>
+                                {cards}
+                            </Grid>
+                            <Copyright sx={{pt: 4}}/>
+                        </Container>
+                    }
                 </Box>
             </Box>
         </ThemeProvider>
     );
 }
 
-let Napster;
 
 export default function Dashboard() {
     const [fetching, setFetching] = useState(false);
     const [list, setList] = useState([]);
-    const [selectedTrack, setSelectedTrack] = useState(null);
+
     const {token} = useContext(AppContext)
 
     useEffect(() => {
@@ -265,70 +268,9 @@ export default function Dashboard() {
             })
     }
 
-    useEffect(() => {
-        Napster = window.Napster;
-        Napster.player.on('playsessionexpired', () => {
-            // this.isPlaying(false);
-            Napster.player.pause();
-            // this.setState({ currentTime: 0, sessionError: true });
-        });
-        Napster.player.on('playtimer', e => {
-            // this.setState({
-            //     currentTime: e.data.currentTime,
-            //     totalTime: e.data.totalTime
-            // });
-            // if (this.state.repeat) {
-            //     if (Math.floor(this.state.currentTime) === this.state.totalTime) {
-            //         Napster.player.play(this.state.selectedTrack.id);
-            //     }
-            // }
-            // if (this.state.autoplay && Object.keys(this.state.selectedTrack).length !== 0) {
-            //     if (Math.floor(this.state.currentTime) === this.state.totalTime) {
-            //         const index = this.state.queue.map(q => q.id).indexOf(this.state.selectedTrack.id);
-            //         if (index !== 9) {
-            //             this.songMovement(this.state.queue[index + 1]);
-            //             this.currentTrack(this.state.selectedTrack.id);
-            //             Napster.player.play(this.state.queue[index + 1].id);
-            //         } else {
-            //             this.songMovement(this.state.queue[0]);
-            //             this.currentTrack(this.state.selectedTrack.id);
-            //             Napster.player.play(this.state.queue[0].id);
-            //         }
-            //     }
-            // }
-        });
-    }, [])
-
-    useEffect(() => {
-        if (selectedTrack) Napster.player.play(selectedTrack.id);
-    }, [selectedTrack])
-
-    return <>
-        <DashboardContent
-            list={list}
-            fetching={fetching}
-            onGetTag={handleGetTags}
-            onSelectTrack={setSelectedTrack}
-        />
-        {selectedTrack && <Player
-            selectedTrack={selectedTrack}
-            // playing={this.state.playing}
-            // shuffle={this.state.shuffle}
-            // updateQueue={this.updateQueue}
-            // songMovement={this.songMovement}
-            // queue={this.state.queue}
-            // queueHolder={this.state.queueHolder}
-            // showQueue={this.showQueue}
-            // isPlaying={this.isPlaying}
-            // isShuffled={this.isShuffled}
-            // isShowing={this.state.isShowing}
-            // currentTime={this.state.currentTime}
-            // totalTime={this.state.totalTime}
-            // currentTrackId={this.state.currentTrackId}
-            // currentTrack={this.currentTrack}
-            // songRepeat={this.songRepeat}
-            // repeat={this.state.repeat}
-            // trackAutoplay={this.trackAutoplay}
-        />}
-    </>
+    return <DashboardContent
+        list={list}
+        fetching={fetching}
+        onGetTag={handleGetTags}
+    />
 }

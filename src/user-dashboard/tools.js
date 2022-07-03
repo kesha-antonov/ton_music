@@ -4,5 +4,5 @@ export const parseTracks = (data) => {
             ...track,
             imageUrl: `https://api.napster.com/imageserver/v2/albums/${track.albumId}/images/170x170.jpg`,
         }
-    }) || []
+    })
 }

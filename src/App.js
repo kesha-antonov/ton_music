@@ -1,7 +1,7 @@
 import './App.css';
 import Dashboard from "./user-dashboard";
-import React, {useEffect, useLayoutEffect, useState} from "react";
-import {authNapster, authSpotify} from "./user-dashboard/requests";
+import React, { useLayoutEffect, useState } from "react";
+import {authNapster} from "./user-dashboard/requests";
 import AppContext from './app-context';
 import {API_KEY} from "./consts";
 
@@ -18,8 +18,6 @@ function App() {
 
         setFetching(true);
         authNapster().then((result) => {
-            console.log(result);
-
             Napster.player.on('ready', () => {
                 Napster.member.set({
                     accessToken: result.access_token,

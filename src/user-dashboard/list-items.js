@@ -7,8 +7,6 @@ import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import LibraryMusicOutlinedIcon from '@mui/icons-material/LibraryMusicOutlined';
 import FeaturedPlayListOutlinedIcon from '@mui/icons-material/FeaturedPlayListOutlined';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import LayersIcon from '@mui/icons-material/Layers';
 
 export const MainListItems = (props) => {
 

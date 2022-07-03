@@ -2,7 +2,6 @@
   "name": "ton_music",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "dependencies": {
     "@emotion/react": "^11.9.3",
     "@emotion/styled": "^11.9.3",

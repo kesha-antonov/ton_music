@@ -7,8 +7,7 @@ let Napster;
 export default class Player extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {
-        };
+        this.state = {};
         Napster = window.Napster;
     }
 
@@ -53,6 +52,8 @@ export default class Player extends React.Component {
     }
 
     nextPrev(cmd, track) {
+        if (!this.props.queue) return
+
         if (track.type === "track") {
             const index = this.props.queue.map(e => e.id).indexOf(track.id);
             if (cmd === "next") {
@@ -94,8 +95,11 @@ export default class Player extends React.Component {
 
     render() {
         const select = (
-            <div className="select" style={{ display: (this.props.selectedTrack === "track" ? 'hide' : 'content') }} key={this.props.selectedTrack.id}>
-                <img src={`https://api.napster.com/imageserver/v2/albums/${this.props.selectedTrack.albumId}/images/500x500.jpg`} alt="Album Art" />
+            <div className="select" style={{display: (this.props.selectedTrack === "track" ? 'hide' : 'content')}}
+                 key={this.props.selectedTrack.id}>
+                <img
+                    src={`https://api.napster.com/imageserver/v2/albums/${this.props.selectedTrack.albumId}/images/500x500.jpg`}
+                    alt="Album Art"/>
                 <div className="text">
                     <h3><strong>{this.props.selectedTrack.name}</strong></h3>
                     <p>{this.props.selectedTrack.artistName}</p>
@@ -105,7 +109,8 @@ export default class Player extends React.Component {
 
         const imgPlaceHolder = (
             <div className="select">
-                <img src="https://www.logolynx.com/images/logolynx/63/63b7e09aff8bbe832d22c752c4bef080.jpeg" alt="NapsterCat" />
+                <img src="https://www.logolynx.com/images/logolynx/63/63b7e09aff8bbe832d22c752c4bef080.jpeg"
+                     alt="NapsterCat"/>
                 <div className="text">
                     <h3><strong>Track</strong></h3>
                     <p>Artist</p>
@@ -122,13 +127,29 @@ export default class Player extends React.Component {
                     totalTime={this.props.totalTime}
                     playing={this.props.playing}
                 />
-                <br />
-                <button type="button" className={this.props.repeat ? "player-toggle" : "player-btn"} title="Repeat" onClick={() => this.repeat()}><i className="fa fa-repeat" /></button>
-                <button type="button" className={this.props.isShowing ? "player-toggle" : "player-btn"} title="Show Queue" onClick={() => { this.props.showQueue(); }}><i className="fa fa-reorder" /></button>
-                <button type="button" title="Previous Song" className="player-btn" onClick={() => { this.nextPrev("prev", this.props.selectedTrack); }}><i className="fa fa-step-backward" /></button>
-                <button type="button" title={this.props.playing ? "Pause" : "Play"} className="player-btn" onClick={() => { this.playPauseResume(this.props.selectedTrack); }}><i className={this.props.playing ? "fa fa-pause" : "fa fa-play"} /></button>
-                <button type="button" title="Next Song" className="player-btn" onClick={() => { this.nextPrev("next", this.props.selectedTrack); }}><i className="fa fa-step-forward" /></button>
-                <button type="button" className={!this.props.shuffle ? "player-btn" : "player-toggle"} title="Shuffle" onClick={() => { this.shuffle(this.props.queue); }}><i className="fa fa-random" /></button>
+                <br/>
+                <button type="button" className={this.props.repeat ? "player-toggle" : "player-btn"} title="Repeat"
+                        onClick={() => this.repeat()}><i className="fa fa-repeat"/></button>
+                {this.props.showQueue &&
+                    <button type="button" className={this.props.isShowing ? "player-toggle" : "player-btn"}
+                            title="Show Queue" onClick={() => {
+                        this.props.showQueue();
+                    }}><i className="fa fa-reorder"/></button>
+                }
+                <button type="button" title="Previous Song" className="player-btn" onClick={() => {
+                    this.nextPrev("prev", this.props.selectedTrack);
+                }}><i className="fa fa-step-backward"/></button>
+                <button type="button" title={this.props.playing ? "Pause" : "Play"} className="player-btn"
+                        onClick={() => {
+                            this.playPauseResume(this.props.selectedTrack);
+                        }}><i className={this.props.playing ? "fa fa-pause" : "fa fa-play"}/></button>
+                <button type="button" title="Next Song" className="player-btn" onClick={() => {
+                    this.nextPrev("next", this.props.selectedTrack);
+                }}><i className="fa fa-step-forward"/></button>
+                <button type="button" className={!this.props.shuffle ? "player-btn" : "player-toggle"} title="Shuffle"
+                        onClick={() => {
+                            this.shuffle(this.props.queue);
+                        }}><i className="fa fa-random"/></button>
             </div>
         );
     }
