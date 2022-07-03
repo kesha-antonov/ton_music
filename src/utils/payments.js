@@ -5,9 +5,6 @@ import constants from './constants.js'
 import TonWeb from 'tonweb'
 const tonMnemonic = require('tonweb-mnemonic')
 
-console.log('TonWeb.payments.PaymentChannel.STATE_OPEN', TonWeb.payments.PaymentChannel.STATE_OPEN)
-console.log('TonWeb.payments.PaymentChannel', TonWeb.payments.PaymentChannel)
-
 // For calculations in the blockchain, we use BigNumber (BN.js). https://github.com/indutny/bn.js
 // Don't use regular {Number} for coins, etc., it has not enough size and there will be loss of accuracy.
 
@@ -24,7 +21,6 @@ const payments = {
   isInited: false,
   init: async () => {
     // const mn = await tonMnemonic.generateMnemonic()
-    // console.log('mn', mn)
     // const res = await tonMnemonic.validateMnemonic([
     //   // 'wet',    'polar',  'exit',
     //   // 'armor',  'couple', 'brisk',
@@ -59,7 +55,6 @@ const payments = {
     //   'glib',
     //   'can',
     // ])
-    // console.log('res', res)
 
     // const mnemonic = [
     //   'client',
@@ -89,14 +84,11 @@ const payments = {
     // ]
 
     // let res = await tonMnemonic.mnemonicToSeed(mnemonic)
-    // console.log('res-1', res)
     // res = base64Encode(mnemonic)
-    // console.log('res-2', res)
     //
     // return
 
     if (payments.isInited) { return }
-
 
     payments.isInited = true
     const providerUrl = 'https://testnet.toncenter.com/api/v2/jsonRPC' // TON HTTP API url. Use payments url for testnet
@@ -142,7 +134,7 @@ const payments = {
       'spiders',
       'military',
       'glib',
-      'can',
+      'can'
     ])
 
     // const seedClient = TonWeb.utils.base64ToBytes(seedClientBase64) // A's private (secret) key
@@ -164,13 +156,11 @@ const payments = {
       publicKey: payments.keyPairClient.publicKey
     })
     payments.walletAddressClient = await payments.walletClient.getAddress() // address of payments wallet in blockchain
-    console.log('walletAddressClient = ', payments.walletAddressClient.toString(true, true, true))
 
     payments.walletSerice = payments.tonweb.wallet.create({
       publicKey: payments.keyPairService.publicKey
     })
     payments.walletAddressService = await payments.walletSerice.getAddress() // address of payments wallet in blockchain
-    console.log('walletAddressService = ', payments.walletAddressService.toString(true, true, true))
   },
   // на вход принимает сколько хочешь внести тонов
   depositFunds: async tonsToDeposit => {
@@ -187,9 +177,6 @@ const payments = {
       seqnoA: new BN(0), // initially 0
       seqnoB: new BN(0) // initially 0
     }
-    console.log('channelInitState-1', channelInitState)
-    console.log('channelInitState-2', channelInitState.balanceA.toString())
-    console.log('channelInitState-3', channelInitState.balanceB.toString())
 
     const channelConfig = {
       channelId: new BN(12345 + 9), // Channel ID, for each new channel there must be a new ID
@@ -198,10 +185,6 @@ const payments = {
       initBalanceA: channelInitState.balanceA,
       initBalanceB: channelInitState.balanceB
     }
-    console.log('channelConfig-1', channelConfig)
-    console.log('channelConfig-2', channelConfig.initBalanceA.toString())
-    console.log('channelConfig-3', channelConfig.initBalanceB.toString())
-    console.log('channelConfig-4', channelConfig.channelId.toString())
 
     // Each on their side creates a payment channel object with payments configuration
 
@@ -212,7 +195,6 @@ const payments = {
       hisPublicKey: payments.keyPairService.publicKey
     })
     const channelAddress = await payments.channelClient.getAddress() // address of payments payment channel smart-contract in blockchain
-    console.log('channelAddress=', channelAddress.toString(true, true, true))
 
     payments.channelService = payments.tonweb.payments.createChannel({
       ...channelConfig,
@@ -247,32 +229,6 @@ const payments = {
     // In a real application, you will need to check that the smart contract of the channel has changed
     // (for example, by calling its get-method and checking the `state`) and only then do the following action.
 
-    async function waitToFinishTransaction () {
-      // console.log('waitToFinishTransaction-1')
-      // while (await payments.channelClient.getChannelState() === 0) {
-      for (let i = 0; i < 50; i++) {
-        await new Promise(resolve => setTimeout(resolve, 10))
-        // console.log('waitToFinishTransaction-2', new Date)
-
-        console.log('waitToFinishTransaction-1', await payments.channelClient.getData())
-        console.log('waitToFinishTransaction-2', await payments.channelService.getData())
-
-        // let channelClient = payments.tonweb.payments.createChannel({
-        //   ...channelConfig,
-        //   isA: true,
-        //   myKeyPair: payments.keyPairClient,
-        //   hisPublicKey: payments.keyPairService.publicKey
-        // })
-        // console.log('channel-3', await channelClient.getChannelState())
-
-        // console.log('channel-2', await payments.channelService.getChannelState())
-        // const data = await payments.channelClient.getData()
-        // console.log('data = ', data)
-        // console.log('balanceA = ', data.balanceA.toString())
-        // console.log('balanceB = ', data.balanceB.toString())
-      }
-    }
-
     // ----------------------------------------------------------------------
     // DEPLOY PAYMENT CHANNEL FROM WALLET A
 
@@ -280,9 +236,7 @@ const payments = {
     // 0.05 TON is the amount to execute payments transaction on the blockchain. The unused portion will be returned.
     // After payments action, a smart contract of our payment channel will be created in the blockchain.
 
-    console.log('depositFunds-1')
     await payments.fromWalletClient.deploy().send(toNano('0.05'))
-    console.log('depositFunds-2')
 
     let isChannelDeployed = false
     while (!isChannelDeployed) {
@@ -291,33 +245,22 @@ const payments = {
         const data = await payments.channelClient.getData()
         isChannelDeployed = data.channelId?.toString() === channelConfig.channelId.toString()
       } catch (e) {
-        console.log('check isChannelDeployed e', e)
+        console.warn('channel deploying... e', e)
       }
     }
 
-    // await new Promise(resolve => setTimeout(resolve, 10 * 1000))
-    // await waitToFinishTransaction()
-
     // To check you can use blockchain explorer https://testnet.tonscan.org/address/<CHANNEL_ADDRESS>
     // We can also call get methods on the channel (it's free) to get its current data.
-
 
     // TOP UP
 
     // Now each parties must send their initial balance from the wallet to the channel contract.
 
-    console.log('depositFunds-3')
     await payments.fromWalletClient
       .topUp({ coinsA: channelInitState.balanceA, coinsB: toNano('0') })
       .send(channelInitState.balanceA.add(toNano('0.05'))) // +0.05 TON to network fees
-    console.log('depositFunds-4')
 
-    while ((await payments.channelClient.getData()).balanceA < channelInitState.balanceA) {
-      console.log('depositFunds-4-1')
-      await new Promise(resolve => setTimeout(resolve, 100))
-    }
-
-    // await waitToFinishTransaction()
+    while ((await payments.channelClient.getData()).balanceA < channelInitState.balanceA) { await new Promise(resolve => setTimeout(resolve, 100)) }
 
     // NO NEED TO TOPUP SERVICE
 
@@ -326,34 +269,17 @@ const payments = {
     //   .send(channelInitState.balanceB.add(toNano('0.05'))) // +0.05 TON to network fees
     // await new Promise(resolve => setTimeout(resolve, 10 * 1000))
 
-    // await waitToFinishTransaction()
-
     // to check, call the get method - the balances should change
 
     // INIT
 
     // After everyone has done top-up, we can initialize the channel from any wallet
 
-    console.log('depositFunds-5')
     await payments.fromWalletClient.init(channelInitState).send(toNano('0.05'))
-    // await payments.fromWalletService.init(channelInitState).send(toNano('0.05'))
-    // await waitToFinishTransaction()
 
-    console.log('depositFunds-6')
-    while (await payments.channelClient.getChannelState() !== TonWeb.payments.PaymentChannel.STATE_OPEN) {
-      await new Promise(resolve => setTimeout(resolve, 10))
-      // console.log('waitToFinishTransaction-2', new Date)
-
-      const data = await payments.channelClient.getData()
-      console.log('channel-1', data)
-      console.log('channel-1', data.balanceA.toString())
-      console.log('channel-1', data.balanceB.toString())
-      console.log('channel-1', data.channelId.toString())
-      // console.log('channel-2', await payments.channelService.getChannelState())
-    }
+    while (await payments.channelClient.getChannelState() !== TonWeb.payments.PaymentChannel.STATE_OPEN) { await new Promise(resolve => setTimeout(resolve, 100)) }
 
     return true
-    // to check, call the get method - `state` should change to `TonWeb.payments.PaymentChannel.STATE_OPEN`
   },
   // рассчитывает сколько потрачено трафика в тонах: size * tonsPerKb и переводит тоны в смарт-контракте в сторону TM
   payForListening: async kb => {

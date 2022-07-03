@@ -8,9 +8,16 @@ describe('payments util', () => {
         expect(payments.isInited).toEqual(true)
     })
 
-    it.only('should deposit funds', async () => {
+    it('should deposit funds', async () => {
         await payments.init()
         const res = await payments.depositFunds(2)
+
+        expect(res).toEqual(true)
+    })
+
+    it.only('should make payments', async () => {
+        await payments.init()
+        await payments.depositFunds(2)
 
         expect(res).toEqual(true)
     })
