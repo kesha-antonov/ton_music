@@ -16,22 +16,24 @@ import Link from '@mui/material/Link';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import {MainListItems, SecondaryListItems} from './list-items';
+import {MainListItems, SecondaryListItems, SettignsListItems} from './list-items';
 import {getTag, getTopChartTracks} from "./requests";
 import {parseTracks} from "./tools";
-import {Card, CardActionArea, CardContent, CardMedia} from "@mui/material";
+import {Button, Card, CardActionArea, CardContent, CardMedia, InputAdornment, Switch, TextField} from "@mui/material";
 import AppContext from "../app-context";
 import PlayerWrapper from "./player-wrapper";
+import Player from "./player";
+import SettingsIcon from '@mui/icons-material/Settings';
+import qr from '../assets/img/qr.png'
 
 function Copyright(props) {
     return (
         <Typography variant="body2" color="text.secondary" align="center" {...props}>
-            {'Copyright © '}
-            <Link color="inherit" href="https://mui.com/">
-                Your Website
+            {'copyright © '}
+            <Link color="inherit" underline="none" href="/">
+                music.ton
             </Link>{' '}
             {new Date().getFullYear()}
-            {'.'}
         </Typography>
     );
 }
@@ -98,6 +100,7 @@ function DashboardContent({list, fetching, onGetTag, onSelectTrack}) {
     const [open, setOpen] = React.useState(true);
     const [tagSelected, setTagSelected] = React.useState('');
     const [mainSelected, setMainSelected] = React.useState('home');
+    const [isOpenSetting, setOpenSettings] = React.useState(false)
     const [selectedTrack, setSelectedTrack] = React.useState(null);
 
     const toggleDrawer = () => {
@@ -178,6 +181,9 @@ function DashboardContent({list, fetching, onGetTag, onSelectTrack}) {
                                 <NotificationsIcon/>
                             </Badge>
                         </IconButton>
+                        <IconButton onClick={() => setOpenSettings(true)} color="inherit">
+                                <SettingsIcon/>
+                        </IconButton>
                     </Toolbar>
                 </AppBar>
                 <Drawer variant="permanent" open={open}>
@@ -218,7 +224,7 @@ function DashboardContent({list, fetching, onGetTag, onSelectTrack}) {
                         <Container maxWidth="lg" sx={{mt: 4, mb: 4}}>
                             {fetching && <Loading/>}
                             <Grid container spacing={{xs: 2, md: 4}} columns={{xs: 8, sm: 12, md: 16}}>
-                                {cards}
+                                {isOpenSetting ? <Settings setOpenSettings={setOpenSettings}/> : <>{cards}</>}
                             </Grid>
                             <Copyright sx={{pt: 4}}/>
                         </Container>
@@ -274,3 +280,105 @@ export default function Dashboard() {
         onGetTag={handleGetTags}
     />
 }
+
+let Settings = (props) => {
+    return (
+        <Grid
+        container
+        direction="row"
+        justifyContent="flex-start"
+        alignItems="center"
+      >
+    <Grid>
+    <Typography style={style.head}>Settings</Typography>
+    <Typography style={style.head2}>TOP-UP</Typography>
+    <Grid
+  container
+  direction="row"
+  justifyContent="flex-start"
+  alignItems="center"
+  sx={{ pt: 2 }}
+>
+    <Typography style={style.balance}>Balance:  {5.99+" TON"}</Typography>
+    </Grid>
+    <Grid
+  container
+  direction="row"
+  justifyContent="flex-start"
+  alignItems="center"
+  sx={{ pt: 2 }}
+>
+    <TextField id="outlined-basic" label="How many" variant="outlined"
+      InputProps={{
+        endAdornment: (
+          <InputAdornment position='end'>
+              <Typography>TON</Typography>
+          </InputAdornment>
+        ),
+      }}
+       />
+    </Grid>
+    <Grid
+  container
+  direction="row"
+  justifyContent="flex-start"
+  alignItems="center"
+  sx={{ pt: 2 }}
+>
+    <Switch defaultChecked /><Typography>auto-topup then fise all funds</Typography>
+    </Grid>
+    <Button sx={{ my: 2 }} variant="contained">Pay</Button>
+    <Grid
+  container
+  direction="row"
+  justifyContent="flex-start"
+  alignItems="center"
+>
+    <Box
+        component="img"
+        sx={{
+          height: 500,
+          width: 200,
+          maxHeight: { xs: 150, md: 150 },
+          maxWidth: { xs: 150, md: 150 },
+        }}
+        alt="The house from the offer."
+        src={qr}
+      />
+      <Typography>Scan QR to pay amount 10 TON</Typography>
+      </Grid>
+      <Typography>*10 TON will be good for 1 month</Typography>
+      <Typography style={style.head2}>Audio</Typography>
+      <Grid
+  container
+  direction="row"
+  justifyContent="flex-start"
+  alignItems="center"
+>
+      <Switch defaultChecked /><Typography>Hight quality audio (uses 2x TON)</Typography>
+      </Grid>
+      <Typography style={style.head2}>Hustory of listening</Typography>
+      <Typography >1. 01.07.22  00:42</Typography>
+      <Typography >2. 01.07.22  02:44</Typography>
+      <Typography >3. 02.07.22  05:12</Typography>
+      <Button onClick={() => props.setOpenSettings(false)} sx={{ my: 2 }} variant="contained">Save</Button>
+      <Button onClick={() => props.setOpenSettings(false)} sx={{ my: 2 }} variant="contained">Cancel</Button>
+    </Grid>
+    </Grid>
+    )
+}
+
+const style = {
+    head: {
+      fontWeight: 800,
+      fontSize: 20,
+    },
+    head2: {
+    fontWeight: 800,
+    fontSize: 20,
+    marginTop: '10px',
+    },
+    balance: {
+        fontSize: 30,
+    }
+  }

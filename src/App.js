@@ -1,41 +1,102 @@
-import './App.css';
-import Dashboard from "./user-dashboard";
-import React, { useLayoutEffect, useState } from "react";
-import {authNapster} from "./user-dashboard/requests";
-import AppContext from './app-context';
-import {API_KEY} from "./consts";
+import './App.css'
+import Dashboard from './user-dashboard'
+import React, { useLayoutEffect, useState, useCallback } from 'react'
+import { authNapster } from './user-dashboard/requests'
+import AppContext from './app-context'
+import { API_KEY } from './consts'
+import StartPage from './startPage/startpage'
+import HeaderNotAuthorized from './header/Header'
 
-const { Napster } = window;
+// import { Buffer } from 'buffer'
+//
+import payments, { EVENTS as PAYMENTS_EVENTS } from './utils/payments'
+// window.Buffer = Buffer
 
-function App() {
-    const [contextValue, setContextValue] = useState({token: null})
-    const [fetching, setFetching] = useState(false)
+const { Napster } = window
 
-    useLayoutEffect(() => {
-        Napster.init({ consumerKey: API_KEY, isHTML5Compatible: true });
+function App () {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [token, setToken] = useState()
+  const [fetching, setFetching] = useState(false)
 
-        if (contextValue.token || fetching) return
+  const [isPaymentsApiLoaded, setIsPaymentsApiLoaded] = useState(false)
+  const [isFundsDeposited, setIsFundsDeposited] = useState(false)
+  const [funds, setFunds] = useState(payments.depositedFunds)
+  const [isWithdrawn, setIsWithdrawn] = useState(true)
 
-        setFetching(true);
-        authNapster().then((result) => {
-            Napster.player.on('ready', () => {
-                Napster.member.set({
-                    accessToken: result.access_token,
-                    refreshToken: result.refresh_token
-                });
-            });
+  const initNapster = useCallback(async () => {
+    Napster.init({ consumerKey: API_KEY, isHTML5Compatible: true })
 
-            setContextValue({token: result.access_token})
-            setFetching(false);
+    if (token || fetching) return
+
+    try {
+      setFetching(true)
+
+      const result = await authNapster()
+
+      Napster.player.on('ready', () => {
+        Napster.member.set({
+          accessToken: result.access_token,
+          refreshToken: result.refresh_token
         })
-            .catch(() => setFetching(false));
-    }, [])
+      })
 
+      setToken(result.access_token)
+      setFetching(false)
+    } catch (e) {
+      setFetching(false)
+      console.warn('initNapster e', e)
+    }
+  }, [token, fetching])
+
+  const handlePaymentsStateChange = useCallback(eventName => {
+    switch (eventName) {
+      case PAYMENTS_EVENTS.LOADED:
+        setIsPaymentsApiLoaded(true)
+        break
+      case PAYMENTS_EVENTS.FUNDS_DEPOSITED:
+        setIsFundsDeposited(true)
+        break
+      case PAYMENTS_EVENTS.FUNDS_CHANGED:
+        setFunds(payments.depositedFunds)
+        break
+      case PAYMENTS_EVENTS.WITHDRAW_COMPLETED:
+        setIsWithdrawn(true)
+        break
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    initNapster()
+    const removePaymentsEventListener = payments.addEventListener(handlePaymentsStateChange)
+
+    return () => {
+      removePaymentsEventListener()
+    }
+  }, [])
+
+  if (isLoggedIn) {
     return (
-        <AppContext.Provider value={contextValue}>
-            <Dashboard/>
-        </AppContext.Provider>
-    );
+      <AppContext.Provider
+        value={{
+          token,
+          isPaymentsApiLoaded,
+          isFundsDeposited,
+          funds,
+          isWithdrawn
+        }}
+      >
+        <Dashboard />
+      </AppContext.Provider>
+    )
+  }
+
+  return (
+    <div>
+      <HeaderNotAuthorized setIsLoggedIn={setIsLoggedIn} />
+      <StartPage />
+    </div>
+  )
 }
 
-export default App;
+export default App
