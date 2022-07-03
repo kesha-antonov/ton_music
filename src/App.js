@@ -1,25 +1,43 @@
-import logo from './logo.svg';
 import './App.css';
+import Dashboard from "./user-dashboard";
+import React, {useEffect, useLayoutEffect, useState} from "react";
+import {authNapster, authSpotify} from "./user-dashboard/requests";
+import AppContext from './app-context';
+import {API_KEY} from "./consts";
+
+const { Napster } = window;
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    const [contextValue, setContextValue] = useState({token: null})
+    const [fetching, setFetching] = useState(false)
+
+    useLayoutEffect(() => {
+        Napster.init({ consumerKey: API_KEY, isHTML5Compatible: true });
+
+        if (contextValue.token || fetching) return
+
+        setFetching(true);
+        authNapster().then((result) => {
+            console.log(result);
+
+            Napster.player.on('ready', () => {
+                Napster.member.set({
+                    accessToken: result.access_token,
+                    refreshToken: result.refresh_token
+                });
+            });
+
+            setContextValue({token: result.access_token})
+            setFetching(false);
+        })
+            .catch(() => setFetching(false));
+    }, [])
+
+    return (
+        <AppContext.Provider value={contextValue}>
+            <Dashboard/>
+        </AppContext.Provider>
+    );
 }
 
 export default App;
