@@ -94,7 +94,7 @@ function App () {
           isFundsDeposited,
           funds,
           isWithdrawn,
-          onSignOut,
+          onSignOut
         }}
       >
         <Dashboard />
