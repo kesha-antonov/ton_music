@@ -224,7 +224,7 @@ function DashboardContent ({ list, fetching, onGetTag, onSelectTrack }) {
           }}
         >
           <Toolbar />
-          {selectedTrack
+          {selectedTrack && !isOpenSetting
             ? <PlayerWrapper track={selectedTrack} />
             : <Container maxWidth='lg' sx={{ mt: 4, mb: 4 }}>
               {fetching && <Loading />}
