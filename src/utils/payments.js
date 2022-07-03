@@ -19,7 +19,7 @@ const BN = TonWeb.utils.BN
 const { toNano, fromNano } = TonWeb.utils
 
 const CHANNEL_TEST_INCREMENT = (new Date()).getTime()
-const EVENTS = {
+export const EVENTS = {
   LOADED: 'LOADED',
   FUNDS_DEPOSITED: 'FUNDS_DEPOSITED',
   FUNDS_CHANGED: 'FUNDS_CHANGED',
@@ -486,6 +486,10 @@ const payments = {
     }
 
     payments.callEventListeners(EVENTS.WITHDRAW_COMPLETED)
+
+    const channelClientData = await payments.channelClient.getData()
+    payments.depositedFunds = fromNano(channelClientData.balanceA).toString()
+    payments.callEventListeners(EVENTS.FUNDS_CHANGED)
 
     return true
   },
