@@ -47,15 +47,16 @@ function App () {
     switch (eventName) {
       case PAYMENTS_EVENTS.LOADED:
         setIsPaymentsApiLoaded(true)
-        return
+        break
       case PAYMENTS_EVENTS.FUNDS_DEPOSITED:
         setIsFundsDeposited(true)
-        return
+        break
       case PAYMENTS_EVENTS.FUNDS_CHANGED:
         setFunds(payments.depositedFunds)
-        return
+        break
       case PAYMENTS_EVENTS.WITHDRAW_COMPLETED:
         setIsWithdrawn(true)
+        break
     }
   }, [])
 
