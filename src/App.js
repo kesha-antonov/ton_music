@@ -4,6 +4,8 @@ import React, { useLayoutEffect, useState, useCallback } from 'react'
 import { authNapster } from './user-dashboard/requests'
 import AppContext from './app-context'
 import { API_KEY } from './consts'
+import StartPage from './startPage/startpage'
+import ButtonAppBar from './header/Header'
 
 // import { Buffer } from 'buffer'
 //
@@ -13,6 +15,7 @@ import payments, { EVENTS as PAYMENTS_EVENTS } from './utils/payments'
 const { Napster } = window
 
 function App () {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [token, setToken] = useState()
   const [fetching, setFetching] = useState(false)
 
@@ -30,7 +33,6 @@ function App () {
       setFetching(true)
 
       const result = await authNapster()
-      console.log(result)
 
       Napster.player.on('ready', () => {
         Napster.member.set({
@@ -73,18 +75,27 @@ function App () {
     }
   }, [])
 
+  if (isLoggedIn) {
+    return (
+      <AppContext.Provider
+        value={{
+          token,
+          isPaymentsApiLoaded,
+          isFundsDeposited,
+          funds,
+          isWithdrawn
+        }}
+      >
+        <Dashboard />
+      </AppContext.Provider>
+    )
+  }
+
   return (
-    <AppContext.Provider
-      value={{
-        token,
-        isPaymentsApiLoaded,
-        isFundsDeposited,
-        funds,
-        isWithdrawn
-      }}
-    >
-      <Dashboard />
-    </AppContext.Provider>
+    <div>
+      <ButtonAppBar setIsLoggedIn={setIsLoggedIn} />
+      <StartPage />
+    </div>
   )
 }
 
