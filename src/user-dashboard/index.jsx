@@ -22,7 +22,6 @@ import {parseTracks} from "./tools";
 import {Button, Card, CardActionArea, CardContent, CardMedia, InputAdornment, Switch, TextField} from "@mui/material";
 import AppContext from "../app-context";
 import PlayerWrapper from "./player-wrapper";
-import Player from "./player";
 import SettingsIcon from '@mui/icons-material/Settings';
 import qr from '../assets/img/qr.png'
 
@@ -112,12 +111,14 @@ function DashboardContent({list, fetching, onGetTag, onSelectTrack}) {
         setTagSelected(value);
         setSelectedTrack(null);
         onGetTag(value);
+        setOpenSettings(false);
     };
 
     const handleMainOnClick = (value) => {
         setMainSelected(value);
         setTagSelected('');
         setSelectedTrack(null);
+        setOpenSettings(false);
     }
 
     const cards = useMemo(() => {
@@ -182,7 +183,7 @@ function DashboardContent({list, fetching, onGetTag, onSelectTrack}) {
                             </Badge>
                         </IconButton>
                         <IconButton onClick={() => setOpenSettings(true)} color="inherit">
-                                <SettingsIcon/>
+                            <SettingsIcon/>
                         </IconButton>
                     </Toolbar>
                 </AppBar>
@@ -283,102 +284,105 @@ export default function Dashboard() {
 
 let Settings = (props) => {
     return (
-        <Grid
-        container
-        direction="row"
-        justifyContent="flex-start"
-        alignItems="center"
-      >
-    <Grid>
-    <Typography style={style.head}>Settings</Typography>
-    <Typography style={style.head2}>TOP-UP</Typography>
-    <Grid
-  container
-  direction="row"
-  justifyContent="flex-start"
-  alignItems="center"
-  sx={{ pt: 2 }}
->
-    <Typography style={style.balance}>Balance:  {5.99+" TON"}</Typography>
-    </Grid>
-    <Grid
-  container
-  direction="row"
-  justifyContent="flex-start"
-  alignItems="center"
-  sx={{ pt: 2 }}
->
-    <TextField id="outlined-basic" label="How many" variant="outlined"
-      InputProps={{
-        endAdornment: (
-          <InputAdornment position='end'>
-              <Typography>TON</Typography>
-          </InputAdornment>
-        ),
-      }}
-       />
-    </Grid>
-    <Grid
-  container
-  direction="row"
-  justifyContent="flex-start"
-  alignItems="center"
-  sx={{ pt: 2 }}
->
-    <Switch defaultChecked /><Typography>auto-topup then fise all funds</Typography>
-    </Grid>
-    <Button sx={{ my: 2 }} variant="contained">Pay</Button>
-    <Grid
-  container
-  direction="row"
-  justifyContent="flex-start"
-  alignItems="center"
->
-    <Box
-        component="img"
-        sx={{
-          height: 500,
-          width: 200,
-          maxHeight: { xs: 150, md: 150 },
-          maxWidth: { xs: 150, md: 150 },
-        }}
-        alt="The house from the offer."
-        src={qr}
-      />
-      <Typography>Scan QR to pay amount 10 TON</Typography>
-      </Grid>
-      <Typography>*10 TON will be good for 1 month</Typography>
-      <Typography style={style.head2}>Audio</Typography>
-      <Grid
-  container
-  direction="row"
-  justifyContent="flex-start"
-  alignItems="center"
->
-      <Switch defaultChecked /><Typography>Hight quality audio (uses 2x TON)</Typography>
-      </Grid>
-      <Typography style={style.head2}>Hustory of listening</Typography>
-      <Typography >1. 01.07.22  00:42</Typography>
-      <Typography >2. 01.07.22  02:44</Typography>
-      <Typography >3. 02.07.22  05:12</Typography>
-      <Button onClick={() => props.setOpenSettings(false)} sx={{ my: 2 }} variant="contained">Save</Button>
-      <Button onClick={() => props.setOpenSettings(false)} sx={{ my: 2 }} variant="contained">Cancel</Button>
-    </Grid>
-    </Grid>
+        <Grid item>
+            <Grid
+                container
+                direction="row"
+                justifyContent="flex-start"
+                alignItems="center"
+            >
+                <Grid>
+                    <Typography style={style.head}>Settings</Typography>
+                    <Typography style={style.head2}>TOP-UP</Typography>
+                    <Grid
+                        container
+                        direction="row"
+                        justifyContent="flex-start"
+                        alignItems="center"
+                        sx={{pt: 2}}
+                    >
+                        <Typography style={style.balance}>Balance: {5.99 + " TON"}</Typography>
+                    </Grid>
+                    <Grid
+                        container
+                        direction="row"
+                        justifyContent="flex-start"
+                        alignItems="center"
+                        sx={{pt: 2}}
+                    >
+                        <TextField id="outlined-basic" label="How many" variant="outlined"
+                                   InputProps={{
+                                       endAdornment: (
+                                           <InputAdornment position='end'>
+                                               <Typography>TON</Typography>
+                                           </InputAdornment>
+                                       ),
+                                   }}
+                        />
+                    </Grid>
+                    <Grid
+                        container
+                        direction="row"
+                        justifyContent="flex-start"
+                        alignItems="center"
+                        sx={{pt: 2}}
+                    >
+                        <Switch defaultChecked/><Typography>auto-topup then fise all funds</Typography>
+                    </Grid>
+                    <Button sx={{my: 2}} variant="contained">Pay</Button>
+                    <Grid
+                        container
+                        direction="row"
+                        justifyContent="flex-start"
+                        alignItems="center"
+                    >
+                        <Box
+                            component="img"
+                            sx={{
+                                height: 500,
+                                width: 200,
+                                maxHeight: {xs: 150, md: 150},
+                                maxWidth: {xs: 150, md: 150},
+                            }}
+                            alt="The house from the offer."
+                            src={qr}
+                        />
+                        <Typography>Scan QR to pay amount 10 TON</Typography>
+                    </Grid>
+                    <Typography>*10 TON will be good for 1 month</Typography>
+                    <Typography style={style.head2}>Audio</Typography>
+                    <Grid
+                        container
+                        direction="row"
+                        justifyContent="flex-start"
+                        alignItems="center"
+                    >
+                        <Switch defaultChecked/><Typography>Hight quality audio (uses 2x TON)</Typography>
+                    </Grid>
+                    <Typography style={style.head2}>Hustory of listening</Typography>
+                    <Typography>1. 01.07.22 00:42</Typography>
+                    <Typography>2. 01.07.22 02:44</Typography>
+                    <Typography>3. 02.07.22 05:12</Typography>
+                    <Button onClick={() => props.setOpenSettings(false)} sx={{my: 2}} variant="contained">Save</Button>
+                    <Button onClick={() => props.setOpenSettings(false)} sx={{my: 2}}
+                            variant="contained">Cancel</Button>
+                </Grid>
+            </Grid>
+        </Grid>
     )
 }
 
 const style = {
     head: {
-      fontWeight: 800,
-      fontSize: 20,
+        fontWeight: 800,
+        fontSize: 20,
     },
     head2: {
-    fontWeight: 800,
-    fontSize: 20,
-    marginTop: '10px',
+        fontWeight: 800,
+        fontSize: 20,
+        marginTop: '10px',
     },
     balance: {
         fontSize: 30,
     }
-  }
+}
