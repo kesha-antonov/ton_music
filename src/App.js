@@ -13,7 +13,7 @@ import payments, { EVENTS as PAYMENTS_EVENTS } from './utils/payments'
 const { Napster } = window
 
 function App () {
-  const [token, setToken] = useState({ token: null })
+  const [token, setToken] = useState()
   const [fetching, setFetching] = useState(false)
 
   const [isPaymentsApiLoaded, setIsPaymentsApiLoaded] = useState(false)
@@ -39,7 +39,7 @@ function App () {
         })
       })
 
-      setToken({ token: result.access_token })
+      setToken(result.access_token)
       setFetching(false)
     } catch (e) {
       setFetching(false)
