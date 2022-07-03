@@ -4,7 +4,11 @@ import React, { useLayoutEffect, useState, useCallback } from 'react'
 import { authNapster } from './user-dashboard/requests'
 import AppContext from './app-context'
 import { API_KEY } from './consts'
-import payments, { EVENTS as PAYMENTS_EVENTS } from 'utils/payments'
+
+// import { Buffer } from 'buffer'
+//
+import payments, { EVENTS as PAYMENTS_EVENTS } from './utils/payments'
+// window.Buffer = Buffer
 
 const { Napster } = window
 
