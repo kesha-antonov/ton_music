@@ -29,12 +29,11 @@ import Player from "./player";
 function Copyright(props) {
     return (
         <Typography variant="body2" color="text.secondary" align="center" {...props}>
-            {'Copyright © '}
-            <Link color="inherit" href="https://mui.com/">
-                Your Website
+            {'copyright © '}
+            <Link color="inherit" underline="none" href="/">
+                music.ton
             </Link>{' '}
             {new Date().getFullYear()}
-            {'.'}
         </Typography>
     );
 }
