@@ -23,7 +23,7 @@ const payments = {
   isInited: false,
   seqnoClient: new BN(0),
   isLoaded: false,
-  depositedFunds: 0, // SHOULD CHANGE UI BASED ON THIS VALUE
+  depositedFunds: '0', // SHOULD CHANGE UI BASED ON THIS VALUE
   init: async () => {
     // const mn = await tonMnemonic.generateMnemonic()
     // const res = await tonMnemonic.validateMnemonic([
@@ -292,6 +292,15 @@ const payments = {
   // рассчитывает сколько потрачено трафика в тонах: size * tonsPerKb и переводит тоны в смарт-контракте в сторону TM
   // или секунд playedSecs * tonsPerSec
   payForListening: async playedSecs => {
+    if (!payments.isInited) {
+      console.warn('PAYMENTS ERROR: NOT INITED')
+      return
+    }
+
+    if (toNano(payments.depositedFunds) < new BN(1)) {
+      console.warn('PAYMENTS ERROR: NOT ENOUGH FUNDS')
+      return
+    }
     // ----------------------------------------------------------------------
     // FIRST OFFCHAIN TRANSFER - A sends 0.1 TON to B
 
