@@ -17,13 +17,13 @@ const BN = TonWeb.utils.BN
 
 const { toNano, fromNano } = TonWeb.utils
 
-const CHANNEL_TEST_INCREMENT = 19
+const CHANNEL_TEST_INCREMENT = (new Date()).getTime()
 
 const payments = {
   isInited: false,
   seqnoClient: new BN(0),
   isLoaded: false,
-  depositedFunds: 0,
+  depositedFunds: 0, // SHOULD CHANGE UI BASED ON THIS VALUE
   init: async () => {
     // const mn = await tonMnemonic.generateMnemonic()
     // const res = await tonMnemonic.validateMnemonic([
@@ -357,6 +357,8 @@ const payments = {
     // }
 
     // payments.seqnoClient = payments.seqnoClient.add(new BN(1))
+
+    payments.depositedFunds = fromNano(payments.lastChannelState.balanceA).toString()
 
     return true
 
